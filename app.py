@@ -764,15 +764,16 @@ if st.session_state.logged_in:
             with st.container():
                 st.markdown(f"### 🏢 {dependencia}")
                 
-                # Crear un dataframe con checkboxes nativos de Streamlit
-                grupo_mostrar = grupo[columnas_a_mostrar].copy()
+                # ===== CHECKBOXES NATIVOS DE STREAMLIT =====
+                st.caption("✅ Marca el checkbox para ver la ficha completa del efectivo")
                 
-                # Añadir columna de selección
-                grupo_mostrar.insert(0, 'Seleccionar', False)
+                # Crear un dataframe con checkboxes
+                grupo_con_check = grupo[columnas_a_mostrar].copy()
+                grupo_con_check.insert(0, 'Seleccionar', False)
                 
                 # Mostrar el dataframe con checkboxes nativos
                 edited_df = st.data_editor(
-                    grupo_mostrar,
+                    grupo_con_check,
                     use_container_width=True,
                     hide_index=True,
                     column_config={
@@ -785,15 +786,18 @@ if st.session_state.logged_in:
                     key=f"selector_{dependencia}"
                 )
                 
-                # Procesar la selección
-                for idx, row in edited_df.iterrows():
-                    if row['Seleccionar']:
-                        # Buscar la fila original en el grupo
-                        fila_original = grupo.iloc[idx]
+                # ===== MOSTRAR TARJETA DEL SELECCIONADO =====
+                # Buscar qué fila está seleccionada
+                seleccionado = False
+                for idx_editor in range(len(edited_df)):
+                    if edited_df.iloc[idx_editor]['Seleccionar']:
+                        # Obtener la fila original usando el índice del DataFrame original
+                        fila_original = grupo.iloc[idx_editor]
                         st.markdown("---")
                         mostrar_tarjeta_efectivo(fila_original, 'APELLIDO Y NOMBRE', 'DNI')
                         st.markdown("---")
-                        break  # Solo mostrar una tarjeta a la vez
+                        seleccionado = True
+                        break
                 
                 # ===== EDITOR DE DATOS (SOLO USUARIOS COMUNES) =====
                 if not es_admin:
@@ -812,6 +816,7 @@ if st.session_state.logged_in:
                         if st.button(f"📨 Enviar propuesta de cambios para {dependencia}", key=f"propuesta_{dependencia}"):
                             cambios_detectados = False
                             
+                            # Verificar agregados
                             if len(edited_df_editor) > len(grupo):
                                 nuevas_filas = edited_df_editor.iloc[len(grupo):]
                                 for _, nueva_fila in nuevas_filas.iterrows():
@@ -823,9 +828,10 @@ if st.session_state.logged_in:
                                         ):
                                             cambios_detectados = True
                             
-                            for idx, (_, original_row) in enumerate(grupo.iterrows()):
-                                if idx < len(edited_df_editor):
-                                    edited_row = edited_df_editor.iloc[idx]
+                            # Verificar modificaciones
+                            for idx_editor, (_, original_row) in enumerate(grupo.iterrows()):
+                                if idx_editor < len(edited_df_editor):
+                                    edited_row = edited_df_editor.iloc[idx_editor]
                                     if not original_row[columnas_a_mostrar].equals(edited_row[columnas_a_mostrar]):
                                         datos_originales = {}
                                         datos_nuevos = {}

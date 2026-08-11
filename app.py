@@ -168,19 +168,19 @@ st.markdown("""
     }
     
     .tabla-unificada .checkbox-cell {
-        width: 30px;
+        width: 40px;
         text-align: center;
     }
     
     .tabla-unificada .checkbox-cell input[type="checkbox"] {
-        width: 16px;
-        height: 16px;
+        width: 18px;
+        height: 18px;
         cursor: pointer;
         accent-color: #2ecc71;
     }
     
     .tabla-unificada .nombre-cell {
-        font-weight: 500;
+        font-weight: 600;
         color: #1f3a6b;
     }
     
@@ -191,12 +191,17 @@ st.markdown("""
         font-size: 0.7rem;
         font-weight: 600;
         color: white;
-        background: #3498db;
     }
     
     .badge-tabla.jerarquia { background: #3498db; }
     .badge-tabla.funcion { background: #e67e22; }
     .badge-tabla.dependencia { background: #8e44ad; }
+    
+    .checkbox-label {
+        display: inline-block;
+        cursor: pointer;
+        padding: 2px 4px;
+    }
     
     /* ===== ESTILO PARA TARJETA DE EFECTIVO ===== */
     .tarjeta-efectivo {
@@ -294,6 +299,9 @@ st.markdown("""
         .tabla-unificada th, .tabla-unificada td {
             padding: 5px 6px;
         }
+        .tabla-unificada .checkbox-cell {
+            width: 30px;
+        }
     }
     
     .footer {
@@ -307,6 +315,17 @@ st.markdown("""
         padding: 12px;
         z-index: 999;
         font-size: 0.75rem;
+    }
+    
+    /* Ocultar botones de Streamlit que usamos para los checkboxes */
+    .stButton button[data-testid="baseButton-secondary"] {
+        display: none !important;
+    }
+    div[data-testid="stButton"] {
+        display: none !important;
+    }
+    .st-emotion-cache-1jicfl2 {
+        display: none !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -918,7 +937,7 @@ else:
                 fig_jer.update_layout(height=500, showlegend=False)
                 st.plotly_chart(fig_jer, use_container_width=True)
     
-    # ========== LISTADO ÚNICO CON HTML ==========
+    # ========== LISTADO ÚNICO CON CHECKBOX FUNCIONAL ==========
     st.markdown(f"## 📋 Listado del personal")
     st.caption(f"Total de registros: {len(datos_filtrados)}")
     
@@ -926,26 +945,24 @@ else:
         columnas_excluir = ['N°', 'N', 'Numero', 'Legajo']
         columnas_a_mostrar = [c for c in datos_filtrados.columns if c not in columnas_excluir]
         
-        # Columnas principales para mostrar en la tabla HTML
-        columnas_principales = ['APELLIDO Y NOMBRE', 'DNI', 'JERARQUÍA', 'FUNCIÓN', 'DEPENDENCIA', 'SEXO']
-        # Filtrar solo las que existen
+        # Columnas para la tabla HTML
+        columnas_principales = ['APELLIDO Y NOMBRE', 'DNI', 'JERARQUÍA', 'FUNCIÓN', 'DEPENDENCIA']
         columnas_tabla = [c for c in columnas_principales if c in datos_filtrados.columns]
         
         for dependencia, grupo in datos_filtrados.groupby(dependencia_col):
             with st.container():
                 st.markdown(f"### 🏢 {dependencia}")
                 
-                # ===== TABLA HTML CON CHECKBOX =====
+                # ===== GENERAR TABLA HTML CON CHECKBOX =====
                 html = f"""
                 <table class="tabla-unificada">
                     <thead>
                         <tr>
-                            <th style="width:30px; text-align:center;">✓</th>
+                            <th style="width:40px; text-align:center;">✓</th>
                             <th>APELLIDO Y NOMBRE</th>
                             <th>DNI</th>
                             <th>JERARQUÍA</th>
                             <th>FUNCIÓN</th>
-                            <th>DEPENDENCIA</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -956,22 +973,30 @@ else:
                     dni = row.get('DNI', '')
                     jerarquia = row.get('JERARQUÍA', '')
                     funcion = row.get('FUNCIÓN', '')
-                    dep = row.get('DEPENDENCIA', '')
                     
-                    # Crear un ID único para el checkbox
-                    checkbox_id = f"chk_{idx}_{dependencia.replace(' ', '_')}"
+                    # ID único para este checkbox
+                    checkbox_id = f"chk_{idx}_{dependencia.replace(' ', '_').replace('.', '')}"
+                    
+                    # Determinar si este checkbox está marcado
+                    is_checked = st.session_state.get(checkbox_id, False)
+                    checked_str = "checked" if is_checked else ""
                     
                     html += f"""
                         <tr>
                             <td class="checkbox-cell">
                                 <input type="checkbox" id="{checkbox_id}" 
-                                       onchange="document.getElementById('btn_{checkbox_id}').click()">
+                                       {checked_str}
+                                       onchange="
+                                           var xhr = new XMLHttpRequest();
+                                           xhr.open('GET', '?chk={checkbox_id}&val=' + this.checked);
+                                           xhr.send();
+                                           location.reload();
+                                       ">
                             </td>
                             <td class="nombre-cell">{nombre}</td>
                             <td>{dni}</td>
                             <td><span class="badge-tabla jerarquia">{jerarquia}</span></td>
                             <td><span class="badge-tabla funcion">{funcion}</span></td>
-                            <td><span class="badge-tabla dependencia">{dep}</span></td>
                         </tr>
                     """
                 
@@ -982,26 +1007,29 @@ else:
                 
                 st.markdown(html, unsafe_allow_html=True)
                 
-                # ===== BOTONES OCULTOS PARA CADA CHECKBOX =====
-                # Usamos botones de Streamlit para manejar la acción del checkbox
+                # ===== PROCESAR CHECKBOX VÍA SESSION_STATE =====
+                # Usamos parámetros de URL para manejar los checkboxes
+                query_params = st.query_params
+                if 'chk' in query_params:
+                    chk_id = query_params['chk']
+                    val = query_params.get('val', 'false') == 'true'
+                    st.session_state[chk_id] = val
+                    # Limpiar los parámetros para evitar loops
+                    st.query_params.clear()
+                    st.rerun()
+                
+                # ===== MOSTRAR TARJETA DEL EFECTIVO SELECCIONADO =====
+                tarjeta_mostrada = False
                 for idx, row in grupo.iterrows():
-                    checkbox_id = f"chk_{idx}_{dependencia.replace(' ', '_')}"
-                    btn_key = f"btn_{checkbox_id}"
-                    
-                    # Botón oculto que se activa con el checkbox
-                    if st.button("", key=btn_key, help="Ver ficha", use_container_width=False, type="primary"):
-                        st.session_state.mostrar_tarjeta = idx
-                        st.rerun()
-                    
-                    # Mostrar tarjeta si este es el seleccionado
-                    if st.session_state.mostrar_tarjeta == idx:
+                    checkbox_id = f"chk_{idx}_{dependencia.replace(' ', '_').replace('.', '')}"
+                    if st.session_state.get(checkbox_id, False):
                         st.markdown("---")
                         mostrar_tarjeta_efectivo(row, 'APELLIDO Y NOMBRE', 'DNI')
                         st.markdown("---")
-                        # Limpiar la selección después de mostrar
-                        # st.session_state.mostrar_tarjeta = None
+                        tarjeta_mostrada = True
+                        break  # Solo mostrar una tarjeta a la vez
                 
-                # ===== EDITOR DE DATOS (SOLO PARA USUARIOS COMUNES) =====
+                # ===== EDITOR DE DATOS (SOLO USUARIOS COMUNES) =====
                 if not es_admin:
                     st.markdown("---")
                     with st.expander("✏️ Editar datos y enviar propuesta de cambios", expanded=False):
@@ -1018,7 +1046,6 @@ else:
                         if st.button(f"📨 Enviar propuesta de cambios para {dependencia}", key=f"propuesta_{dependencia}"):
                             cambios_detectados = False
                             
-                            # Verificar agregados
                             if len(edited_df) > len(grupo):
                                 nuevas_filas = edited_df.iloc[len(grupo):]
                                 for _, nueva_fila in nuevas_filas.iterrows():
@@ -1030,7 +1057,6 @@ else:
                                         ):
                                             cambios_detectados = True
                             
-                            # Verificar modificaciones
                             for idx, (_, original_row) in enumerate(grupo.iterrows()):
                                 if idx < len(edited_df):
                                     edited_row = edited_df.iloc[idx]

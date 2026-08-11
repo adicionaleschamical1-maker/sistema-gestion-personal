@@ -855,7 +855,7 @@ else:
                 fig_jer.update_layout(height=500, showlegend=False)
                 st.plotly_chart(fig_jer, use_container_width=True)
     
-    # ========== LISTADO UNIFICADO CON CHECKBOX ==========
+    # ========== LISTADO UNIFICADO: UNA SOLA TABLA CON CHECKBOX Y EDITOR ==========
     st.markdown(f"## 📋 Listado del personal")
     st.caption(f"Total de registros: {len(datos_filtrados)}")
     
@@ -868,37 +868,44 @@ else:
             with st.container():
                 st.markdown(f"### 🏢 {dependencia}")
                 
-                # Mostrar listado con checkboxes
-                st.markdown("**Seleccioná un efectivo para ver su ficha completa:**")
-                
-                # Checkboxes para cada efectivo
-                for idx, row in grupo.iterrows():
-                    nombre = row.get(nombre_col, 'Sin nombre')
-                    dni = row.get(dni_col, '') if dni_col else ''
-                    label = f"{nombre} (DNI: {dni})" if dni else nombre
-                    
-                    key = f"ver_{idx}_{dependencia}"
-                    mostrar = st.checkbox(label, key=key, value=False)
-                    
-                    if mostrar:
-                        st.markdown("---")
-                        mostrar_tarjeta_efectivo(row, nombre_col, dni_col)
-                        st.markdown("---")
-                
-                st.markdown("---")
-                
-                # ===== EDITOR DE DATOS (SOLO PARA USUARIOS COMUNES) =====
+                # ===== UN SOLO LISTADO CON CHECKBOX + EDITOR =====
                 if not es_admin:
                     st.markdown("#### ✏️ Modificá los valores y enviá la propuesta de cambios")
+                    st.caption("📌 Marcá el checkbox de un efectivo para ver su ficha completa")
                     
+                    # Crear una copia del grupo para mostrar con checkboxes
+                    grupo_mostrar = grupo.copy()
+                    
+                    # Crear el editor de datos
                     edited_df = st.data_editor(
-                        grupo[columnas_a_mostrar],
+                        grupo_mostrar[columnas_a_mostrar],
                         use_container_width=True,
                         hide_index=True,
                         num_rows="dynamic",
                         key=f"editor_{dependencia}"
                     )
                     
+                    # Checkboxes para ver tarjetas (debajo del editor)
+                    st.markdown("---")
+                    st.markdown("**Seleccioná un efectivo para ver su ficha completa:**")
+                    
+                    # Checkboxes para cada efectivo
+                    for idx, row in grupo.iterrows():
+                        nombre = row.get(nombre_col, 'Sin nombre')
+                        dni = row.get(dni_col, '') if dni_col else ''
+                        label = f"{nombre} (DNI: {dni})" if dni else nombre
+                        
+                        key = f"ver_{idx}_{dependencia}"
+                        mostrar = st.checkbox(label, key=key, value=False)
+                        
+                        if mostrar:
+                            st.markdown("---")
+                            mostrar_tarjeta_efectivo(row, nombre_col, dni_col)
+                            st.markdown("---")
+                    
+                    st.markdown("---")
+                    
+                    # Botón para enviar propuesta
                     if st.button(f"📨 Enviar propuesta de cambios para {dependencia}", key=f"propuesta_{dependencia}"):
                         cambios_detectados = False
                         
@@ -941,9 +948,26 @@ else:
                         else:
                             st.info("ℹ️ No se detectaron cambios para enviar.")
                 else:
-                    # Admin: solo muestra los datos
+                    # Admin: solo muestra el listado con checkboxes
                     st.markdown("#### 📊 Datos de la dependencia")
                     st.dataframe(grupo[columnas_a_mostrar], use_container_width=True, hide_index=True)
+                    
+                    st.markdown("---")
+                    st.markdown("**Seleccioná un efectivo para ver su ficha completa:**")
+                    
+                    # Checkboxes para cada efectivo
+                    for idx, row in grupo.iterrows():
+                        nombre = row.get(nombre_col, 'Sin nombre')
+                        dni = row.get(dni_col, '') if dni_col else ''
+                        label = f"{nombre} (DNI: {dni})" if dni else nombre
+                        
+                        key = f"ver_{idx}_{dependencia}"
+                        mostrar = st.checkbox(label, key=key, value=False)
+                        
+                        if mostrar:
+                            st.markdown("---")
+                            mostrar_tarjeta_efectivo(row, nombre_col, dni_col)
+                            st.markdown("---")
                 
                 st.markdown("---")
     else:

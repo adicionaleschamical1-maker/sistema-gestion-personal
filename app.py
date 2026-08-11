@@ -125,6 +125,28 @@ st.markdown("""
         box-shadow: 0 4px 15px rgba(52,152,219,0.3);
     }
     
+    /* === BOTÓN DE LOGIN VISIBLE === */
+    div[data-testid="stButton"] {
+        display: block !important;
+    }
+    
+    .stButton button[kind="primary"] {
+        background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%) !important;
+        color: white !important;
+        font-weight: 600 !important;
+        padding: 10px 30px !important;
+        border-radius: 30px !important;
+        border: none !important;
+        font-size: 16px !important;
+        transition: all 0.3s ease !important;
+        width: 100% !important;
+    }
+    
+    .stButton button[kind="primary"]:hover {
+        transform: scale(1.02);
+        box-shadow: 0 4px 20px rgba(46,204,113,0.4);
+    }
+    
     div[data-testid="stMetric"] {
         background: white;
         border-radius: 12px;
@@ -304,16 +326,6 @@ st.markdown("""
         padding: 12px;
         z-index: 999;
         font-size: 0.75rem;
-    }
-    
-    .stButton button[data-testid="baseButton-secondary"] {
-        display: none !important;
-    }
-    div[data-testid="stButton"] {
-        display: none !important;
-    }
-    .st-emotion-cache-1jicfl2 {
-        display: none !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -591,9 +603,10 @@ if 'mostrar_tarjeta' not in st.session_state:
     st.session_state.mostrar_tarjeta = None
 
 # ========== LOGIN ==========
-# PRIMERO: Verificar si el usuario ya está logueado
 if st.session_state.logged_in:
-    # Mostrar la aplicación
+    # ============================================================
+    # APLICACIÓN PRINCIPAL (usuario logueado)
+    # ============================================================
     user = st.session_state.user_data
     
     # ========== SIDEBAR ==========
@@ -1079,39 +1092,33 @@ if st.session_state.logged_in:
     )
 
 else:
-    # ========== PANTALLA DE LOGIN ==========
+    # ============================================================
+    # PANTALLA DE LOGIN
+    # ============================================================
     col1, col2 = st.columns([1, 1])
     with col1:
         st.title("👮‍♂️ Sistema de Gestión de Personal")
         st.markdown("### Iniciar Sesión")
         
-        dni_input = st.text_input("📄 DNI", placeholder="Ingrese su número de documento")
-        clave_input = st.text_input("🔒 Clave", type="password", placeholder="Ingrese su contraseña")
+        dni_input = st.text_input("📄 DNI", placeholder="Ingrese su número de documento", key="login_dni")
+        clave_input = st.text_input("🔒 Clave", type="password", placeholder="Ingrese su contraseña", key="login_clave")
         
-        # Botón de login - CON ESTILO VISIBLE
-        col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
-        with col_btn2:
-            if st.button("🚪 Ingresar", type="primary", use_container_width=True):
-                if dni_input and clave_input:
-                    # Buscar usuario
-                    df_usuarios = st.session_state.df_usuarios
-                    usuario = df_usuarios[
-                        (df_usuarios['DNI'].astype(str).str.lower() == dni_input.lower()) &
-                        (df_usuarios['CLAVE'].astype(str).str.lower() == clave_input.lower())
-                    ]
-                    if not usuario.empty:
-                        st.session_state.logged_in = True
-                        st.session_state.user_data = usuario.iloc[0]
-                        st.rerun()
-                    else:
-                        st.error("❌ DNI o Clave incorrectos")
+        # Botón de login - con estilo visible
+        if st.button("🚪 Ingresar", type="primary", use_container_width=True, key="login_button"):
+            if dni_input and clave_input:
+                df_usuarios = st.session_state.df_usuarios
+                usuario = df_usuarios[
+                    (df_usuarios['DNI'].astype(str).str.lower() == dni_input.lower()) &
+                    (df_usuarios['CLAVE'].astype(str).str.lower() == clave_input.lower())
+                ]
+                if not usuario.empty:
+                    st.session_state.logged_in = True
+                    st.session_state.user_data = usuario.iloc[0]
+                    st.rerun()
                 else:
-                    st.warning("⚠️ Por favor, complete DNI y Clave")
-        
-        # Mostrar mensaje de error si corresponde
-        if 'login_error' in st.session_state:
-            st.error(st.session_state.login_error)
-            del st.session_state.login_error
+                    st.error("❌ DNI o Clave incorrectos")
+            else:
+                st.warning("⚠️ Por favor, complete DNI y Clave")
     
     with col2:
         st.markdown("### ℹ️ Información")

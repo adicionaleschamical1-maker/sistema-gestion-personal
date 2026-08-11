@@ -760,100 +760,91 @@ if st.session_state.logged_in:
         columnas_excluir = ['N°', 'N', 'Numero', 'Legajo']
         columnas_a_mostrar = [c for c in datos_filtrados.columns if c not in columnas_excluir]
         
+        # ===== LISTADO EDITABLE (PRIORIDAD 1) =====
         for dependencia, grupo in datos_filtrados.groupby(dependencia_col):
             with st.container():
                 st.markdown(f"### 🏢 {dependencia}")
                 
-                # ===== CHECKBOXES NATIVOS DE STREAMLIT =====
-                st.caption("✅ Marca el checkbox para ver la ficha completa del efectivo")
-                
-                # Crear un dataframe con checkboxes
-                grupo_con_check = grupo[columnas_a_mostrar].copy()
-                grupo_con_check.insert(0, 'Seleccionar', False)
-                
-                # Mostrar el dataframe con checkboxes nativos
-                edited_df = st.data_editor(
-                    grupo_con_check,
-                    use_container_width=True,
-                    hide_index=True,
-                    column_config={
-                        "Seleccionar": st.column_config.CheckboxColumn(
-                            "👤 Ver ficha",
-                            help="Marcar para ver la ficha completa del efectivo",
-                            default=False
-                        )
-                    },
-                    key=f"selector_{dependencia}"
-                )
-                
-                # ===== MOSTRAR TARJETA DEL SELECCIONADO =====
-                # Buscar qué fila está seleccionada
-                seleccionado = False
-                for idx_editor in range(len(edited_df)):
-                    if edited_df.iloc[idx_editor]['Seleccionar']:
-                        # Obtener la fila original usando el índice del DataFrame original
-                        fila_original = grupo.iloc[idx_editor]
-                        st.markdown("---")
-                        mostrar_tarjeta_efectivo(fila_original, 'APELLIDO Y NOMBRE', 'DNI')
-                        st.markdown("---")
-                        seleccionado = True
-                        break
-                
-                # ===== EDITOR DE DATOS (SOLO USUARIOS COMUNES) =====
-                if not es_admin:
-                    st.markdown("---")
-                    with st.expander("✏️ Editar datos y enviar propuesta de cambios", expanded=False):
-                        st.caption("Modificá los valores en la tabla y enviá la propuesta para que el administrador la revise.")
+                if es_admin:
+                    # Admin: solo visualización
+                    st.dataframe(grupo[columnas_a_mostrar], use_container_width=True, hide_index=True)
+                else:
+                    # Usuario: editor con propuestas
+                    st.caption("✏️ Modificá los valores directamente en la tabla y enviá la propuesta de cambios")
+                    
+                    edited_df = st.data_editor(
+                        grupo[columnas_a_mostrar],
+                        use_container_width=True,
+                        hide_index=True,
+                        num_rows="dynamic",
+                        key=f"editor_{dependencia}"
+                    )
+                    
+                    if st.button(f"📨 Enviar propuesta de cambios para {dependencia}", key=f"propuesta_{dependencia}", type="primary"):
+                        cambios_detectados = False
                         
-                        edited_df_editor = st.data_editor(
-                            grupo[columnas_a_mostrar],
-                            use_container_width=True,
-                            hide_index=True,
-                            num_rows="dynamic",
-                            key=f"editor_{dependencia}"
-                        )
+                        # Verificar agregados (nuevas filas)
+                        if len(edited_df) > len(grupo):
+                            nuevas_filas = edited_df.iloc[len(grupo):]
+                            for _, nueva_fila in nuevas_filas.iterrows():
+                                datos_nuevos = nueva_fila.to_dict()
+                                if 'DNI' in datos_nuevos and datos_nuevos['DNI']:
+                                    if guardar_propuesta(
+                                        user['DNI'], user['NOMBRE'], dependencia, 
+                                        "AGREGAR", {}, datos_nuevos
+                                    ):
+                                        cambios_detectados = True
                         
-                        if st.button(f"📨 Enviar propuesta de cambios para {dependencia}", key=f"propuesta_{dependencia}"):
-                            cambios_detectados = False
+                        # Verificar modificaciones (cambios en filas existentes)
+                        for idx_editor in range(min(len(grupo), len(edited_df))):
+                            original_row = grupo.iloc[idx_editor]
+                            edited_row = edited_df.iloc[idx_editor]
                             
-                            # Verificar agregados
-                            if len(edited_df_editor) > len(grupo):
-                                nuevas_filas = edited_df_editor.iloc[len(grupo):]
-                                for _, nueva_fila in nuevas_filas.iterrows():
-                                    datos_nuevos = nueva_fila.to_dict()
-                                    if 'DNI' in datos_nuevos and datos_nuevos['DNI']:
-                                        if guardar_propuesta(
-                                            user['DNI'], user['NOMBRE'], dependencia, 
-                                            "AGREGAR", {}, datos_nuevos
-                                        ):
-                                            cambios_detectados = True
-                            
-                            # Verificar modificaciones
-                            for idx_editor, (_, original_row) in enumerate(grupo.iterrows()):
-                                if idx_editor < len(edited_df_editor):
-                                    edited_row = edited_df_editor.iloc[idx_editor]
-                                    if not original_row[columnas_a_mostrar].equals(edited_row[columnas_a_mostrar]):
-                                        datos_originales = {}
-                                        datos_nuevos = {}
-                                        for col in columnas_a_mostrar:
-                                            if str(original_row[col]) != str(edited_row[col]):
-                                                datos_originales[col] = original_row[col]
-                                                datos_nuevos[col] = edited_row[col]
-                                        
-                                        if datos_originales:
-                                            if guardar_propuesta(
-                                                user['DNI'], user['NOMBRE'], dependencia,
-                                                "MODIFICAR", datos_originales, datos_nuevos
-                                            ):
-                                                cambios_detectados = True
-                            
-                            if cambios_detectados:
-                                st.success("✅ Propuesta enviada correctamente. El administrador la revisará.")
-                                st.balloons()
-                                time.sleep(2)
-                                st.rerun()
-                            else:
-                                st.info("ℹ️ No se detectaron cambios para enviar.")
+                            if not original_row[columnas_a_mostrar].equals(edited_row[columnas_a_mostrar]):
+                                datos_originales = {}
+                                datos_nuevos = {}
+                                for col in columnas_a_mostrar:
+                                    if str(original_row[col]) != str(edited_row[col]):
+                                        datos_originales[col] = original_row[col]
+                                        datos_nuevos[col] = edited_row[col]
+                                
+                                if datos_originales:
+                                    if guardar_propuesta(
+                                        user['DNI'], user['NOMBRE'], dependencia,
+                                        "MODIFICAR", datos_originales, datos_nuevos
+                                    ):
+                                        cambios_detectados = True
+                        
+                        if cambios_detectados:
+                            st.success("✅ Propuesta enviada correctamente. El administrador la revisará.")
+                            st.balloons()
+                            time.sleep(2)
+                            st.rerun()
+                        else:
+                            st.info("ℹ️ No se detectaron cambios para enviar.")
+                
+                st.markdown("---")
+        
+        # ===== TARJETAS (PRIORIDAD 2) =====
+        st.markdown("## 👤 Ver ficha completa de un efectivo")
+        st.caption("Seleccioná un efectivo para ver todos sus datos en formato de tarjeta")
+        
+        for dependencia, grupo in datos_filtrados.groupby(dependencia_col):
+            with st.container():
+                st.markdown(f"### 🏢 {dependencia}")
+                
+                for idx, row in grupo.iterrows():
+                    nombre = row.get('APELLIDO Y NOMBRE', 'Sin nombre')
+                    dni = row.get('DNI', '') if dni_col else ''
+                    label = f"{nombre} (DNI: {dni})" if dni else nombre
+                    
+                    key = f"ver_{idx}_{dependencia}"
+                    mostrar = st.checkbox(label, key=key, value=False)
+                    
+                    if mostrar:
+                        st.markdown("---")
+                        mostrar_tarjeta_efectivo(row, 'APELLIDO Y NOMBRE', 'DNI')
+                        st.markdown("---")
                 
                 st.markdown("---")
     else:

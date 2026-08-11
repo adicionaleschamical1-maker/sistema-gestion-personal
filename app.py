@@ -145,7 +145,7 @@ st.markdown("""
         padding: 25px 30px;
         box-shadow: 0 8px 30px rgba(0,0,0,0.08);
         border: 1px solid #e8edf3;
-        margin: 15px 0 20px 0;
+        margin: 10px 0 20px 0;
         transition: all 0.3s ease;
     }
     
@@ -246,6 +246,7 @@ st.markdown("""
     .stCheckbox label {
         font-weight: 500;
         color: #2d3748;
+        font-size: 14px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -867,6 +868,9 @@ else:
             with st.container():
                 st.markdown(f"### 🏢 {dependencia}")
                 
+                # Mostrar listado con checkboxes
+                st.markdown("**Seleccioná un efectivo para ver su ficha completa:**")
+                
                 # Checkboxes para cada efectivo
                 for idx, row in grupo.iterrows():
                     nombre = row.get(nombre_col, 'Sin nombre')
@@ -874,17 +878,18 @@ else:
                     label = f"{nombre} (DNI: {dni})" if dni else nombre
                     
                     key = f"ver_{idx}_{dependencia}"
-                    mostrar = st.checkbox(f"👤 {label}", key=key, value=False)
+                    mostrar = st.checkbox(label, key=key, value=False)
                     
                     if mostrar:
                         st.markdown("---")
                         mostrar_tarjeta_efectivo(row, nombre_col, dni_col)
                         st.markdown("---")
                 
+                st.markdown("---")
+                
                 # ===== EDITOR DE DATOS (SOLO PARA USUARIOS COMUNES) =====
                 if not es_admin:
-                    st.markdown("#### ✏️ Editar datos de esta dependencia")
-                    st.caption("Modificá los valores y enviá la propuesta de cambios")
+                    st.markdown("#### ✏️ Modificá los valores y enviá la propuesta de cambios")
                     
                     edited_df = st.data_editor(
                         grupo[columnas_a_mostrar],

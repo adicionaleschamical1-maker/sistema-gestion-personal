@@ -138,6 +138,66 @@ st.markdown("""
         border: 1px solid #eef2f7;
     }
     
+    /* ===== ESTILO PARA TABLA HTML UNIFICADA ===== */
+    .tabla-unificada {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+        margin: 10px 0;
+    }
+    
+    .tabla-unificada th {
+        background: #1f3a6b;
+        color: white;
+        padding: 10px 12px;
+        text-align: left;
+        font-weight: 600;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .tabla-unificada td {
+        padding: 8px 12px;
+        border-bottom: 1px solid #eef2f7;
+        vertical-align: middle;
+    }
+    
+    .tabla-unificada tr:hover {
+        background-color: #f8fafc;
+    }
+    
+    .tabla-unificada .checkbox-cell {
+        width: 30px;
+        text-align: center;
+    }
+    
+    .tabla-unificada .checkbox-cell input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+        accent-color: #2ecc71;
+    }
+    
+    .tabla-unificada .nombre-cell {
+        font-weight: 500;
+        color: #1f3a6b;
+    }
+    
+    .tabla-unificada .badge-tabla {
+        display: inline-block;
+        padding: 2px 10px;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: white;
+        background: #3498db;
+    }
+    
+    .badge-tabla.jerarquia { background: #3498db; }
+    .badge-tabla.funcion { background: #e67e22; }
+    .badge-tabla.dependencia { background: #8e44ad; }
+    
     /* ===== ESTILO PARA TARJETA DE EFECTIVO ===== */
     .tarjeta-efectivo {
         background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
@@ -145,7 +205,7 @@ st.markdown("""
         padding: 25px 30px;
         box-shadow: 0 8px 30px rgba(0,0,0,0.08);
         border: 1px solid #e8edf3;
-        margin: 10px 0 20px 0;
+        margin: 15px 0 20px 0;
         transition: all 0.3s ease;
     }
     
@@ -218,16 +278,6 @@ st.markdown("""
         font-size: 0.9rem;
     }
     
-    /* Estilo para los checkboxes en lista */
-    .efectivo-item {
-        padding: 4px 0;
-        border-bottom: 1px solid #f0f2f5;
-    }
-    
-    .efectivo-item:hover {
-        background-color: #f8fafc;
-    }
-    
     @media (max-width: 768px) {
         .tarjeta-efectivo .grid-datos {
             grid-template-columns: 1fr;
@@ -237,6 +287,12 @@ st.markdown("""
         }
         .tarjeta-efectivo .header-tarjeta h3 {
             font-size: 1.2rem;
+        }
+        .tabla-unificada {
+            font-size: 11px;
+        }
+        .tabla-unificada th, .tabla-unificada td {
+            padding: 5px 6px;
         }
     }
     
@@ -251,12 +307,6 @@ st.markdown("""
         padding: 12px;
         z-index: 999;
         font-size: 0.75rem;
-    }
-    
-    .stCheckbox label {
-        font-weight: 500;
-        color: #2d3748;
-        font-size: 14px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -530,6 +580,8 @@ if 'filtros' not in st.session_state:
     st.session_state.filtros = {}
 if 'propuesta_rotacion' not in st.session_state:
     st.session_state.propuesta_rotacion = None
+if 'mostrar_tarjeta' not in st.session_state:
+    st.session_state.mostrar_tarjeta = None
 
 # ========== LOGIN ==========
 if not st.session_state.logged_in:
@@ -593,6 +645,7 @@ else:
         st.markdown("---")
         if st.button("🚪 Cerrar Sesión", use_container_width=True):
             st.session_state.logged_in = False
+            st.session_state.mostrar_tarjeta = None
             st.rerun()
     
     # ========== TÍTULO PRINCIPAL ==========
@@ -865,7 +918,7 @@ else:
                 fig_jer.update_layout(height=500, showlegend=False)
                 st.plotly_chart(fig_jer, use_container_width=True)
     
-    # ========== LISTADO ÚNICO Y LIMPIO ==========
+    # ========== LISTADO ÚNICO CON HTML ==========
     st.markdown(f"## 📋 Listado del personal")
     st.caption(f"Total de registros: {len(datos_filtrados)}")
     
@@ -873,29 +926,80 @@ else:
         columnas_excluir = ['N°', 'N', 'Numero', 'Legajo']
         columnas_a_mostrar = [c for c in datos_filtrados.columns if c not in columnas_excluir]
         
+        # Columnas principales para mostrar en la tabla HTML
+        columnas_principales = ['APELLIDO Y NOMBRE', 'DNI', 'JERARQUÍA', 'FUNCIÓN', 'DEPENDENCIA', 'SEXO']
+        # Filtrar solo las que existen
+        columnas_tabla = [c for c in columnas_principales if c in datos_filtrados.columns]
+        
         for dependencia, grupo in datos_filtrados.groupby(dependencia_col):
             with st.container():
                 st.markdown(f"### 🏢 {dependencia}")
                 
-                # Mostrar tabla de datos (solo visualización)
-                st.dataframe(grupo[columnas_a_mostrar], use_container_width=True, hide_index=True)
+                # ===== TABLA HTML CON CHECKBOX =====
+                html = f"""
+                <table class="tabla-unificada">
+                    <thead>
+                        <tr>
+                            <th style="width:30px; text-align:center;">✓</th>
+                            <th>APELLIDO Y NOMBRE</th>
+                            <th>DNI</th>
+                            <th>JERARQUÍA</th>
+                            <th>FUNCIÓN</th>
+                            <th>DEPENDENCIA</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                """
                 
-                st.markdown("---")
-                st.markdown("**👤 Seleccioná un efectivo para ver su ficha completa:**")
-                
-                # Checkboxes para cada efectivo
                 for idx, row in grupo.iterrows():
-                    nombre = row.get(nombre_col, 'Sin nombre')
-                    dni = row.get(dni_col, '') if dni_col else ''
-                    label = f"{nombre} (DNI: {dni})" if dni else nombre
+                    nombre = row.get('APELLIDO Y NOMBRE', 'Sin nombre')
+                    dni = row.get('DNI', '')
+                    jerarquia = row.get('JERARQUÍA', '')
+                    funcion = row.get('FUNCIÓN', '')
+                    dep = row.get('DEPENDENCIA', '')
                     
-                    key = f"ver_{idx}_{dependencia}"
-                    mostrar = st.checkbox(label, key=key, value=False)
+                    # Crear un ID único para el checkbox
+                    checkbox_id = f"chk_{idx}_{dependencia.replace(' ', '_')}"
                     
-                    if mostrar:
+                    html += f"""
+                        <tr>
+                            <td class="checkbox-cell">
+                                <input type="checkbox" id="{checkbox_id}" 
+                                       onchange="document.getElementById('btn_{checkbox_id}').click()">
+                            </td>
+                            <td class="nombre-cell">{nombre}</td>
+                            <td>{dni}</td>
+                            <td><span class="badge-tabla jerarquia">{jerarquia}</span></td>
+                            <td><span class="badge-tabla funcion">{funcion}</span></td>
+                            <td><span class="badge-tabla dependencia">{dep}</span></td>
+                        </tr>
+                    """
+                
+                html += """
+                    </tbody>
+                </table>
+                """
+                
+                st.markdown(html, unsafe_allow_html=True)
+                
+                # ===== BOTONES OCULTOS PARA CADA CHECKBOX =====
+                # Usamos botones de Streamlit para manejar la acción del checkbox
+                for idx, row in grupo.iterrows():
+                    checkbox_id = f"chk_{idx}_{dependencia.replace(' ', '_')}"
+                    btn_key = f"btn_{checkbox_id}"
+                    
+                    # Botón oculto que se activa con el checkbox
+                    if st.button("", key=btn_key, help="Ver ficha", use_container_width=False, type="primary"):
+                        st.session_state.mostrar_tarjeta = idx
+                        st.rerun()
+                    
+                    # Mostrar tarjeta si este es el seleccionado
+                    if st.session_state.mostrar_tarjeta == idx:
                         st.markdown("---")
-                        mostrar_tarjeta_efectivo(row, nombre_col, dni_col)
+                        mostrar_tarjeta_efectivo(row, 'APELLIDO Y NOMBRE', 'DNI')
                         st.markdown("---")
+                        # Limpiar la selección después de mostrar
+                        # st.session_state.mostrar_tarjeta = None
                 
                 # ===== EDITOR DE DATOS (SOLO PARA USUARIOS COMUNES) =====
                 if not es_admin:

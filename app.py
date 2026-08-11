@@ -147,6 +147,11 @@ st.markdown("""
         box-shadow: 0 4px 20px rgba(46,204,113,0.4);
     }
     
+    /* Ocultar botones de checkbox pero mantener funcionalidad */
+    .stButton button:not([kind="primary"]):not([kind="header"]) {
+        display: none !important;
+    }
+    
     div[data-testid="stMetric"] {
         background: white;
         border-radius: 12px;
@@ -917,7 +922,7 @@ if st.session_state.logged_in:
             with st.container():
                 st.markdown(f"### 🏢 {dependencia}")
                 
-                # ===== TABLA HTML =====
+                # ===== TABLA HTML CON CHECKBOX =====
                 html = f"""
                 <table class="tabla-unificada">
                     <thead>
@@ -932,6 +937,9 @@ if st.session_state.logged_in:
                     <tbody>
                 """
                 
+                # Diccionario para guardar los botones ocultos
+                botones_ocultos = []
+                
                 for idx, row in grupo.iterrows():
                     nombre = row.get('APELLIDO Y NOMBRE', 'Sin nombre')
                     dni = row.get('DNI', '')
@@ -939,6 +947,7 @@ if st.session_state.logged_in:
                     funcion = row.get('FUNCIÓN', '')
                     
                     checkbox_id = f"chk_{idx}_{dependencia.replace(' ', '_').replace('.', '')}"
+                    
                     is_checked = st.session_state.get(checkbox_id, False)
                     checked_str = "checked" if is_checked else ""
                     
@@ -948,10 +957,8 @@ if st.session_state.logged_in:
                                 <input type="checkbox" id="{checkbox_id}" 
                                        {checked_str}
                                        onchange="
-                                           var xhr = new XMLHttpRequest();
-                                           xhr.open('GET', '?chk={checkbox_id}&val=' + this.checked);
-                                           xhr.send();
-                                           location.reload();
+                                           var btn = document.getElementById('btn_{checkbox_id}');
+                                           if (btn) btn.click();
                                        ">
                             </td>
                             <td class="nombre-cell">{nombre}</td>
@@ -960,6 +967,9 @@ if st.session_state.logged_in:
                             <td><span class="badge-tabla funcion">{funcion}</span></td>
                         </tr>
                     """
+                    
+                    # Guardar referencia al botón
+                    botones_ocultos.append((checkbox_id, idx, row))
                 
                 html += """
                     </tbody>
@@ -968,22 +978,25 @@ if st.session_state.logged_in:
                 
                 st.markdown(html, unsafe_allow_html=True)
                 
-                # ===== PROCESAR CHECKBOX =====
-                query_params = st.query_params
-                if 'chk' in query_params:
-                    chk_id = query_params['chk']
-                    val = query_params.get('val', 'false') == 'true'
-                    st.session_state[chk_id] = val
-                    st.query_params.clear()
-                    st.rerun()
+                # ===== BOTONES OCULTOS PARA CADA CHECKBOX =====
+                # Estos botones se activan cuando se hace clic en el checkbox
+                for checkbox_id, idx, row in botones_ocultos:
+                    btn_key = f"btn_{checkbox_id}"
+                    is_checked = st.session_state.get(checkbox_id, False)
+                    
+                    # Botón invisible que cambia el estado
+                    if st.button("", key=btn_key, use_container_width=False):
+                        st.session_state[checkbox_id] = not is_checked
+                        st.rerun()
                 
                 # ===== MOSTRAR TARJETA =====
-                for idx, row in grupo.iterrows():
-                    checkbox_id = f"chk_{idx}_{dependencia.replace(' ', '_').replace('.', '')}"
+                tarjeta_mostrada = False
+                for checkbox_id, idx, row in botones_ocultos:
                     if st.session_state.get(checkbox_id, False):
                         st.markdown("---")
                         mostrar_tarjeta_efectivo(row, 'APELLIDO Y NOMBRE', 'DNI')
                         st.markdown("---")
+                        tarjeta_mostrada = True
                         break
                 
                 # ===== EDITOR =====
@@ -1103,7 +1116,6 @@ else:
         dni_input = st.text_input("📄 DNI", placeholder="Ingrese su número de documento", key="login_dni")
         clave_input = st.text_input("🔒 Clave", type="password", placeholder="Ingrese su contraseña", key="login_clave")
         
-        # Botón de login - con estilo visible
         if st.button("🚪 Ingresar", type="primary", use_container_width=True, key="login_button"):
             if dni_input and clave_input:
                 df_usuarios = st.session_state.df_usuarios

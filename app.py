@@ -825,28 +825,29 @@ if st.session_state.logged_in:
                 
                 st.markdown("---")
         
-        # ===== TARJETAS (PRIORIDAD 2) =====
-        st.markdown("## 👤 Ver ficha completa de un efectivo")
-        st.caption("Seleccioná un efectivo para ver todos sus datos en formato de tarjeta")
-        
-        for dependencia, grupo in datos_filtrados.groupby(dependencia_col):
-            with st.container():
-                st.markdown(f"### 🏢 {dependencia}")
-                
-                for idx, row in grupo.iterrows():
-                    nombre = row.get('APELLIDO Y NOMBRE', 'Sin nombre')
-                    dni = row.get('DNI', '') if dni_col else ''
-                    label = f"{nombre} (DNI: {dni})" if dni else nombre
+        # ===== BOTÓN PARA VER TARJETAS (PRIORIDAD 2 - OCULTO) =====
+        st.markdown("---")
+        with st.expander("👤 Ver ficha personal de un efectivo", expanded=False):
+            st.caption("Seleccioná un efectivo para ver todos sus datos en formato de tarjeta")
+            
+            for dependencia, grupo in datos_filtrados.groupby(dependencia_col):
+                with st.container():
+                    st.markdown(f"**🏢 {dependencia}**")
                     
-                    key = f"ver_{idx}_{dependencia}"
-                    mostrar = st.checkbox(label, key=key, value=False)
+                    for idx, row in grupo.iterrows():
+                        nombre = row.get('APELLIDO Y NOMBRE', 'Sin nombre')
+                        dni = row.get('DNI', '') if dni_col else ''
+                        label = f"{nombre} (DNI: {dni})" if dni else nombre
+                        
+                        key = f"ver_{idx}_{dependencia}"
+                        mostrar = st.checkbox(label, key=key, value=False)
+                        
+                        if mostrar:
+                            st.markdown("---")
+                            mostrar_tarjeta_efectivo(row, 'APELLIDO Y NOMBRE', 'DNI')
+                            st.markdown("---")
                     
-                    if mostrar:
-                        st.markdown("---")
-                        mostrar_tarjeta_efectivo(row, 'APELLIDO Y NOMBRE', 'DNI')
-                        st.markdown("---")
-                
-                st.markdown("---")
+                    st.markdown("---")
     else:
         st.warning("⚠️ No hay datos con los filtros seleccionados")
     

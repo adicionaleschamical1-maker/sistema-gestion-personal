@@ -47,7 +47,6 @@ st.markdown("""
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     
-    /* Botón de colapso del header */
     button[data-testid="baseButton-header"] {
         background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%) !important;
         color: white !important;
@@ -75,7 +74,6 @@ st.markdown("""
         fill: white !important;
     }
     
-    /* Sidebar */
     [data-testid="stSidebar"] {
         background: linear-gradient(135deg, #0f2b3d 0%, #1a3a4f 100%);
         box-shadow: 2px 0 10px rgba(0,0,0,0.1);
@@ -138,6 +136,51 @@ st.markdown("""
         padding: 15px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         border: 1px solid #eef2f7;
+    }
+    
+    /* ===== ESTILO PARA TARJETA DE EFECTIVO ===== */
+    .tarjeta-efectivo {
+        background: white;
+        border-radius: 16px;
+        padding: 25px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 1px solid #e8edf3;
+        margin: 15px 0;
+    }
+    
+    .tarjeta-efectivo h3 {
+        color: #1f3a6b;
+        border-bottom: 3px solid #2ecc71;
+        padding-bottom: 10px;
+        margin-top: 0;
+    }
+    
+    .tarjeta-efectivo .campo {
+        display: flex;
+        padding: 6px 0;
+        border-bottom: 1px solid #f0f2f5;
+    }
+    
+    .tarjeta-efectivo .campo .etiqueta {
+        font-weight: 600;
+        color: #4a5568;
+        width: 180px;
+        flex-shrink: 0;
+    }
+    
+    .tarjeta-efectivo .campo .valor {
+        color: #2d3748;
+        font-weight: 500;
+    }
+    
+    .tarjeta-efectivo .badge {
+        display: inline-block;
+        background: #2ecc71;
+        color: white;
+        padding: 2px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
     }
     
     .footer {
@@ -293,10 +336,8 @@ def aprobar_propuesta(id_propuesta):
         header = [str(col).strip().upper() for col in all_data[0]]
         
         if accion == 'AGREGAR':
-            # Buscar columna DNI para identificar
             col_dni = header.index('DNI') if 'DNI' in header else None
             if col_dni is not None:
-                # Verificar si ya existe
                 dnis_existentes = [row[col_dni] if len(row) > col_dni else '' for row in all_data[1:]]
                 if datos_nuevos.get('DNI') in dnis_existentes:
                     st.warning("⚠️ El DNI ya existe en la base de datos")
@@ -327,12 +368,10 @@ def aprobar_propuesta(id_propuesta):
                             ws_personal.delete_rows(i)
                             break
         
-        # Marcar como aprobada
         propuestas_df.loc[propuestas_df['ID'] == str(id_propuesta), 'ESTADO'] = 'APROBADO'
         ws_propuestas.clear()
         ws_propuestas.update([propuestas_df.columns.tolist()] + propuestas_df.values.tolist())
         
-        # Recargar datos
         st.session_state.df_personal, st.session_state.df_usuarios, st.session_state.df_propuestas = cargar_datos_hoja()
         return True
     except Exception as e:
@@ -363,6 +402,60 @@ def rechazar_propuesta(id_propuesta):
         st.error(f"Error al rechazar propuesta: {e}")
         return False
 
+# ========== FUNCIÓN PARA MOSTRAR TARJETA DE EFECTIVO ==========
+def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
+    """Muestra una tarjeta con la información completa de un efectivo"""
+    
+    st.markdown(f"""
+    <div class="tarjeta-efectivo">
+        <h3>👮‍♂️ {row.get(nombre_col, 'Sin nombre')}</h3>
+        <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+            <span class="badge">DNI: {row.get(dni_col, 'N/A') if dni_col else 'N/A'}</span>
+            <span class="badge" style="background: #3498db;">{row.get('JERARQUÍA', 'Sin jerarquía')}</span>
+            <span class="badge" style="background: #e67e22;">{row.get('FUNCIÓN', 'Sin función')}</span>
+            <span class="badge" style="background: #8e44ad;">{row.get('DEPENDENCIA', 'Sin dependencia')}</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px 30px;">
+    """, unsafe_allow_html=True)
+    
+    # Lista de columnas a mostrar (ordenadas y legibles)
+    columnas_ordenadas = [
+        'APELLIDO Y NOMBRE', 'DNI', 'JERARQUÍA', 'FUNCIÓN', 'DEPENDENCIA',
+        'SEXO', 'MARCA DE ARMA', 'N° DE ARMA', 'OBS', 'SITUACION',
+        'GRUPO SANGUINEO', 'N° DE TELEFONO', 'DOMICILIO REAL (DONDE VIVE)',
+        'FECHA DE NACIMIENTO', 'EDAD', 'ANTIGUEDAD',
+        'DIAS DE LICENCIA DISPONIBLE', 'DIAS DE LICENCIA TOMADA',
+        'DIAS DE PROXIMA LICENCIA', 'LEGAJO PERSONAL', 'FECHA DE ULTIMO ASCENSO'
+    ]
+    
+    # Mostrar solo las columnas que existen en el DataFrame
+    for col in columnas_ordenadas:
+        if col in row.index:
+            valor = row.get(col, '')
+            if valor and str(valor) != 'nan':
+                etiqueta = col.replace('_', ' ').title()
+                st.markdown(f"""
+                    <div class="campo">
+                        <span class="etiqueta">{etiqueta}:</span>
+                        <span class="valor">{valor}</span>
+                    </div>
+                """, unsafe_allow_html=True)
+    
+    # Mostrar columnas extra que no están en la lista ordenada
+    columnas_extra = [c for c in row.index if c not in columnas_ordenadas and c not in ['N°', 'N', 'Numero', 'Legajo']]
+    for col in columnas_extra:
+        valor = row.get(col, '')
+        if valor and str(valor) != 'nan':
+            etiqueta = col.replace('_', ' ').title()
+            st.markdown(f"""
+                <div class="campo">
+                    <span class="etiqueta">{etiqueta}:</span>
+                    <span class="valor">{valor}</span>
+                </div>
+            """, unsafe_allow_html=True)
+    
+    st.markdown("</div></div>", unsafe_allow_html=True)
+
 # ========== CARGA INICIAL ==========
 if 'df_personal' not in st.session_state:
     resultado = cargar_datos_hoja()
@@ -376,6 +469,8 @@ if 'filtros' not in st.session_state:
     st.session_state.filtros = {}
 if 'propuesta_rotacion' not in st.session_state:
     st.session_state.propuesta_rotacion = None
+if 'efectivo_seleccionado' not in st.session_state:
+    st.session_state.efectivo_seleccionado = None
 
 # ========== LOGIN ==========
 if not st.session_state.logged_in:
@@ -408,6 +503,7 @@ if not st.session_state.logged_in:
         - 🔄 Gestión de rotaciones por jerarquía
         - 📎 Exportación de datos
         - 📊 Resúmenes estadísticos
+        - 🃏 Visualización en tarjeta de efectivos
         
         ---
         *Si no posee credenciales, contacte al administrador.*
@@ -438,6 +534,7 @@ else:
         st.markdown("---")
         if st.button("🚪 Cerrar Sesión", use_container_width=True):
             st.session_state.logged_in = False
+            st.session_state.efectivo_seleccionado = None
             st.rerun()
     
     # ========== TÍTULO PRINCIPAL ==========
@@ -507,13 +604,11 @@ else:
                                 
                                 st.markdown("#### 🔄 Cambios propuestos:")
                                 cambios = []
-                                # SOLO mostrar los campos que cambiaron
                                 todas_columnas = set(datos_originales.keys()) | set(datos_nuevos.keys())
                                 for columna in todas_columnas:
                                     original = datos_originales.get(columna, '')
                                     nuevo = datos_nuevos.get(columna, '')
                                     if str(original) != str(nuevo):
-                                        # Mostrar solo los campos que realmente cambiaron
                                         cambios.append({
                                             'Campo': columna,
                                             'Valor actual': original if original and str(original) != 'nan' else '(vacío)',
@@ -583,7 +678,6 @@ else:
         datos_completos = st.session_state.df_personal.copy()
         st.success("👑 **Modo Administrador** - Visualizando todo el personal", icon="👑")
         
-        # Métricas
         col_m1, col_m2, col_m3, col_m4 = st.columns(4)
         with col_m1:
             st.metric("📊 Total Personal", len(datos_completos))
@@ -613,7 +707,6 @@ else:
                 return p
         return None
     
-    # Columnas principales
     nombre_col = encontrar_columna(datos_completos, ['APELLIDO Y NOMBRE', 'NOMBRE', 'NOMBRE COMPLETO'])
     dni_col = encontrar_columna(datos_completos, ['DNI', 'Dni', 'dni'])
     jerarquia_col = encontrar_columna(datos_completos, ['JERARQUÍA', 'Jerarquia', 'JERARQUIA', 'RANGO'])
@@ -629,7 +722,6 @@ else:
     st.markdown("## 🔎 Filtros de Búsqueda")
     col1, col2, col3 = st.columns(3)
     
-    # Obtener opciones únicas
     opciones_dependencia = sorted(datos_completos[dependencia_col].dropna().unique())
     opciones_jerarquia = sorted(datos_completos[jerarquia_col].dropna().unique())
     opciones_funcion = sorted(datos_completos[funcion_col].dropna().unique())
@@ -641,7 +733,6 @@ else:
     with col3:
         fun_filter = st.multiselect("📋 Función", opciones_funcion)
     
-    # Aplicar filtros
     datos_filtrados = datos_completos.copy()
     if dep_filter:
         datos_filtrados = datos_filtrados[datos_filtrados[dependencia_col].isin(dep_filter)]
@@ -650,7 +741,6 @@ else:
     if fun_filter:
         datos_filtrados = datos_filtrados[datos_filtrados[funcion_col].isin(fun_filter)]
     
-    # Búsqueda rápida
     busqueda = st.text_input("🔍 Búsqueda rápida", placeholder="Nombre, DNI, dependencia...")
     if busqueda:
         mascara = datos_filtrados.astype(str).apply(lambda row: row.str.contains(busqueda, case=False).any(), axis=1)
@@ -717,80 +807,118 @@ else:
                 fig_jer.update_layout(height=500, showlegend=False)
                 st.plotly_chart(fig_jer, use_container_width=True)
     
-    # ========== LISTADO DEL PERSONAL ==========
+    # ========== LISTADO DEL PERSONAL CON SELECCIÓN ==========
     st.markdown(f"## 📋 Listado detallado del personal")
     st.caption(f"Total de registros: {len(datos_filtrados)}")
     
     if len(datos_filtrados) > 0:
-        # Columnas a mostrar (excluir algunas que no son necesarias)
         columnas_excluir = ['N°', 'N', 'Numero', 'Legajo']
         columnas_a_mostrar = [c for c in datos_filtrados.columns if c not in columnas_excluir]
         
+        # ===== CREAR SELECTOR DE EFECTIVOS =====
+        st.markdown("### 👤 Seleccionar efectivo para ver su ficha")
+        
+        # Crear lista de opciones para el selector
+        opciones_efectivos = []
+        for idx, row in datos_filtrados.iterrows():
+            nombre = row.get(nombre_col, 'Sin nombre')
+            dni = row.get(dni_col, '') if dni_col else ''
+            label = f"{nombre} (DNI: {dni})" if dni else nombre
+            opciones_efectivos.append((idx, label))
+        
+        # Selector
+        opciones_labels = [label for _, label in opciones_efectivos]
+        seleccion_index = st.selectbox(
+            "Seleccioná un efectivo:",
+            options=range(len(opciones_labels)),
+            format_func=lambda i: opciones_labels[i],
+            key="selector_efectivo"
+        )
+        
+        if seleccion_index is not None:
+            idx_seleccionado = opciones_efectivos[seleccion_index][0]
+            row_seleccionada = datos_filtrados.loc[idx_seleccionado]
+            
+            # Mostrar tarjeta
+            st.markdown("---")
+            mostrar_tarjeta_efectivo(row_seleccionada, nombre_col, dni_col)
+            st.markdown("---")
+        
+        # ===== LISTADO COMPLETO (con opción de clic para ver tarjeta) =====
+        st.markdown("### 📋 Listado completo")
+        st.caption("Hacé clic en el botón 'Ver ficha' para ver los detalles completos")
+        
         if es_admin:
-            # Admin: visualización completa
             for dependencia, grupo in datos_filtrados.groupby(dependencia_col):
                 with st.container():
-                    st.markdown(f"### 🏢 {dependencia}")
+                    st.markdown(f"#### 🏢 {dependencia}")
+                    
+                    # Agregar botón "Ver ficha" a cada fila
+                    grupo_con_boton = grupo.copy()
+                    grupo_con_boton = grupo_con_boton.reset_index()
+                    
+                    # Crear columnas para mostrar
+                    cols_mostrar = columnas_a_mostrar.copy()
+                    
+                    # Mostrar dataframe sin botón (por simplicidad)
                     st.dataframe(grupo[columnas_a_mostrar], use_container_width=True, hide_index=True)
+                    
+                    # Botones para ver ficha debajo del dataframe
+                    st.markdown("**Seleccionar efectivo de esta dependencia:**")
+                    opciones_grupo = []
+                    for idx, row in grupo.iterrows():
+                        nombre = row.get(nombre_col, 'Sin nombre')
+                        dni = row.get(dni_col, '') if dni_col else ''
+                        label = f"{nombre} (DNI: {dni})" if dni else nombre
+                        opciones_grupo.append((idx, label))
+                    
+                    if opciones_grupo:
+                        opciones_labels_grupo = [label for _, label in opciones_grupo]
+                        seleccion_grupo = st.selectbox(
+                            f"Efectivos de {dependencia}:",
+                            options=range(len(opciones_labels_grupo)),
+                            format_func=lambda i: opciones_labels_grupo[i],
+                            key=f"selector_{dependencia}"
+                        )
+                        if seleccion_grupo is not None:
+                            idx_grupo = opciones_grupo[seleccion_grupo][0]
+                            row_grupo = grupo.loc[idx_grupo]
+                            st.markdown("---")
+                            mostrar_tarjeta_efectivo(row_grupo, nombre_col, dni_col)
+                            st.markdown("---")
+                    
                     st.markdown("---")
         else:
-            # Usuario: puede editar
+            # Usuario común: listado con selector
             for dependencia, grupo in datos_filtrados.groupby(dependencia_col):
                 with st.container():
-                    st.markdown(f"### 🏢 {dependencia}")
+                    st.markdown(f"#### 🏢 {dependencia}")
                     
-                    edited_df = st.data_editor(
-                        grupo[columnas_a_mostrar],
-                        use_container_width=True,
-                        hide_index=True,
-                        num_rows="dynamic",
-                        key=f"editor_{dependencia}"
-                    )
+                    st.dataframe(grupo[columnas_a_mostrar], use_container_width=True, hide_index=True)
                     
-                    if st.button(f"📨 Enviar propuesta de cambios para {dependencia}", key=f"propuesta_{dependencia}"):
-                        cambios_detectados = False
-                        
-                        # Verificar agregados
-                        if len(edited_df) > len(grupo):
-                            nuevas_filas = edited_df.iloc[len(grupo):]
-                            for _, nueva_fila in nuevas_filas.iterrows():
-                                datos_nuevos = nueva_fila.to_dict()
-                                # Asegurar que tenga DNI
-                                if 'DNI' in datos_nuevos and datos_nuevos['DNI']:
-                                    if guardar_propuesta(
-                                        user['DNI'], user['NOMBRE'], dependencia, 
-                                        "AGREGAR", {}, datos_nuevos
-                                    ):
-                                        cambios_detectados = True
-                        
-                        # ===== NUEVA LÓGICA: SOLO GUARDAR CAMPOS MODIFICADOS =====
-                        for idx, (_, original_row) in enumerate(grupo.iterrows()):
-                            if idx < len(edited_df):
-                                edited_row = edited_df.iloc[idx]
-                                if not original_row[columnas_a_mostrar].equals(edited_row[columnas_a_mostrar]):
-                                    # 🔍 Detectar SOLO los campos que cambiaron
-                                    datos_originales = {}
-                                    datos_nuevos = {}
-                                    for col in columnas_a_mostrar:
-                                        if str(original_row[col]) != str(edited_row[col]):
-                                            datos_originales[col] = original_row[col]
-                                            datos_nuevos[col] = edited_row[col]
-                                    
-                                    # Solo guardar si hay cambios
-                                    if datos_originales:
-                                        if guardar_propuesta(
-                                            user['DNI'], user['NOMBRE'], dependencia,
-                                            "MODIFICAR", datos_originales, datos_nuevos
-                                        ):
-                                            cambios_detectados = True
-                        
-                        if cambios_detectados:
-                            st.success("✅ Propuesta enviada correctamente. El administrador la revisará.")
-                            st.balloons()
-                            time.sleep(2)
-                            st.rerun()
-                        else:
-                            st.info("ℹ️ No se detectaron cambios para enviar.")
+                    # Selector para ver ficha
+                    st.markdown("**Seleccionar efectivo para ver su ficha:**")
+                    opciones_grupo = []
+                    for idx, row in grupo.iterrows():
+                        nombre = row.get(nombre_col, 'Sin nombre')
+                        dni = row.get(dni_col, '') if dni_col else ''
+                        label = f"{nombre} (DNI: {dni})" if dni else nombre
+                        opciones_grupo.append((idx, label))
+                    
+                    if opciones_grupo:
+                        opciones_labels_grupo = [label for _, label in opciones_grupo]
+                        seleccion_grupo = st.selectbox(
+                            f"Efectivos de {dependencia}:",
+                            options=range(len(opciones_labels_grupo)),
+                            format_func=lambda i: opciones_labels_grupo[i],
+                            key=f"selector_user_{dependencia}"
+                        )
+                        if seleccion_grupo is not None:
+                            idx_grupo = opciones_grupo[seleccion_grupo][0]
+                            row_grupo = grupo.loc[idx_grupo]
+                            st.markdown("---")
+                            mostrar_tarjeta_efectivo(row_grupo, nombre_col, dni_col)
+                            st.markdown("---")
                     
                     st.markdown("---")
     else:

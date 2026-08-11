@@ -507,11 +507,13 @@ else:
                                 
                                 st.markdown("#### 🔄 Cambios propuestos:")
                                 cambios = []
+                                # SOLO mostrar los campos que cambiaron
                                 todas_columnas = set(datos_originales.keys()) | set(datos_nuevos.keys())
                                 for columna in todas_columnas:
                                     original = datos_originales.get(columna, '')
                                     nuevo = datos_nuevos.get(columna, '')
                                     if str(original) != str(nuevo):
+                                        # Mostrar solo los campos que realmente cambiaron
                                         cambios.append({
                                             'Campo': columna,
                                             'Valor actual': original if original and str(original) != 'nan' else '(vacío)',
@@ -761,18 +763,26 @@ else:
                                     ):
                                         cambios_detectados = True
                         
-                        # Verificar modificaciones
+                        # ===== NUEVA LÓGICA: SOLO GUARDAR CAMPOS MODIFICADOS =====
                         for idx, (_, original_row) in enumerate(grupo.iterrows()):
                             if idx < len(edited_df):
                                 edited_row = edited_df.iloc[idx]
                                 if not original_row[columnas_a_mostrar].equals(edited_row[columnas_a_mostrar]):
-                                    datos_originales = original_row[columnas_a_mostrar].to_dict()
-                                    datos_nuevos = edited_row.to_dict()
-                                    if guardar_propuesta(
-                                        user['DNI'], user['NOMBRE'], dependencia,
-                                        "MODIFICAR", datos_originales, datos_nuevos
-                                    ):
-                                        cambios_detectados = True
+                                    # 🔍 Detectar SOLO los campos que cambiaron
+                                    datos_originales = {}
+                                    datos_nuevos = {}
+                                    for col in columnas_a_mostrar:
+                                        if str(original_row[col]) != str(edited_row[col]):
+                                            datos_originales[col] = original_row[col]
+                                            datos_nuevos[col] = edited_row[col]
+                                    
+                                    # Solo guardar si hay cambios
+                                    if datos_originales:
+                                        if guardar_propuesta(
+                                            user['DNI'], user['NOMBRE'], dependencia,
+                                            "MODIFICAR", datos_originales, datos_nuevos
+                                        ):
+                                            cambios_detectados = True
                         
                         if cambios_detectados:
                             st.success("✅ Propuesta enviada correctamente. El administrador la revisará.")

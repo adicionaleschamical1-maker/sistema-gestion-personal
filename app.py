@@ -982,15 +982,20 @@ if st.session_state.logged_in:
                 
                 st.markdown(html, unsafe_allow_html=True)
                 
-                # ===== BOTONES OCULTOS =====
-                for fila in filas:
-                    checkbox_id = fila['checkbox_id']
-                    btn_id = fila['btn_id']
-                    is_checked = st.session_state.get(checkbox_id, False)
-                    
-                    if st.button("", key=btn_id, use_container_width=False):
-                        st.session_state[checkbox_id] = not is_checked
-                        st.rerun()
+                # ===== BOTONES OCULTOS PARA CADA CHECKBOX =====
+                # Creamos un contenedor para los botones ocultos
+                with st.container():
+                    for fila in filas:
+                        checkbox_id = fila['checkbox_id']
+                        btn_id = fila['btn_id']
+                        is_checked = st.session_state.get(checkbox_id, False)
+                        
+                        # Botón oculto - se dispara cuando el checkbox cambia
+                        # Usamos un botón con texto vacío para que no ocupe espacio visible
+                        if st.button("", key=btn_id, use_container_width=False):
+                            # Invertir el estado
+                            st.session_state[checkbox_id] = not is_checked
+                            st.rerun()
                 
                 # ===== MOSTRAR TARJETA =====
                 for fila in filas:

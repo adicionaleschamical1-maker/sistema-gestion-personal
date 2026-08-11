@@ -145,7 +145,7 @@ st.markdown("""
         padding: 25px 30px;
         box-shadow: 0 8px 30px rgba(0,0,0,0.08);
         border: 1px solid #e8edf3;
-        margin: 20px 0;
+        margin: 15px 0 20px 0;
         transition: all 0.3s ease;
     }
     
@@ -218,17 +218,6 @@ st.markdown("""
         font-size: 0.9rem;
     }
     
-    .tarjeta-efectivo .campo .valor-destacado {
-        background: #ebf8ff;
-        padding: 0 8px;
-        border-radius: 4px;
-        color: #2b6cb0;
-    }
-    
-    .tarjeta-efectivo .fila-doble {
-        grid-column: 1 / -1;
-    }
-    
     @media (max-width: 768px) {
         .tarjeta-efectivo .grid-datos {
             grid-template-columns: 1fr;
@@ -254,14 +243,9 @@ st.markdown("""
         font-size: 0.75rem;
     }
     
-    /* Checkbox estilizado */
     .stCheckbox label {
         font-weight: 500;
         color: #2d3748;
-    }
-    
-    .stCheckbox label span {
-        margin-left: 5px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -485,7 +469,6 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
         <div class="grid-datos">
     """, unsafe_allow_html=True)
     
-    # Lista de columnas a mostrar (ordenadas y legibles)
     columnas_ordenadas = [
         'APELLIDO Y NOMBRE', 'DNI', 'JERARQUÍA', 'FUNCIÓN', 'DEPENDENCIA',
         'SEXO', 'MARCA DE ARMA', 'N° DE ARMA', 'OBS', 'SITUACION',
@@ -495,34 +478,20 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
         'DIAS DE PROXIMA LICENCIA', 'LEGAJO PERSONAL', 'FECHA DE ULTIMO ASCENSO'
     ]
     
-    # Contar cuántos campos se muestran para decidir columnas
-    campos_mostrados = 0
     for col in columnas_ordenadas:
         if col in row.index:
             valor = row.get(col, '')
             if valor and str(valor) != 'nan':
-                campos_mostrados += 1
-    
-    # Si hay más de 8 campos, usar dos columnas, sino una
-    usar_dos_columnas = campos_mostrados > 8
-    
-    for col in columnas_ordenadas:
-        if col in row.index:
-            valor = row.get(col, '')
-            if valor and str(valor) != 'nan':
-                etiqueta = col.replace('_', ' ').title()
-                # Omitir etiquetas redundantes que ya están en los badges
                 if col in ['APELLIDO Y NOMBRE', 'DNI', 'JERARQUÍA', 'FUNCIÓN', 'DEPENDENCIA', 'SEXO']:
                     continue
-                clase_extra = " fila-doble" if not usar_dos_columnas else ""
+                etiqueta = col.replace('_', ' ').title()
                 st.markdown(f"""
-                    <div class="campo{clase_extra}">
+                    <div class="campo">
                         <span class="etiqueta">{etiqueta}:</span>
                         <span class="valor">{valor}</span>
                     </div>
                 """, unsafe_allow_html=True)
     
-    # Mostrar columnas extra que no están en la lista ordenada
     columnas_extra = [c for c in row.index if c not in columnas_ordenadas and c not in ['N°', 'N', 'Numero', 'Legajo']]
     for col in columnas_extra:
         valor = row.get(col, '')
@@ -550,8 +519,6 @@ if 'filtros' not in st.session_state:
     st.session_state.filtros = {}
 if 'propuesta_rotacion' not in st.session_state:
     st.session_state.propuesta_rotacion = None
-if 'efectivos_seleccionados' not in st.session_state:
-    st.session_state.efectivos_seleccionados = set()
 
 # ========== LOGIN ==========
 if not st.session_state.logged_in:
@@ -615,7 +582,6 @@ else:
         st.markdown("---")
         if st.button("🚪 Cerrar Sesión", use_container_width=True):
             st.session_state.logged_in = False
-            st.session_state.efectivos_seleccionados = set()
             st.rerun()
     
     # ========== TÍTULO PRINCIPAL ==========
@@ -888,26 +854,25 @@ else:
                 fig_jer.update_layout(height=500, showlegend=False)
                 st.plotly_chart(fig_jer, use_container_width=True)
     
-    # ========== LISTADO DEL PERSONAL CON CHECKBOX ==========
-    st.markdown(f"## 📋 Listado detallado del personal")
+    # ========== LISTADO UNIFICADO CON CHECKBOX ==========
+    st.markdown(f"## 📋 Listado del personal")
     st.caption(f"Total de registros: {len(datos_filtrados)}")
     
     if len(datos_filtrados) > 0:
         columnas_excluir = ['N°', 'N', 'Numero', 'Legajo']
         columnas_a_mostrar = [c for c in datos_filtrados.columns if c not in columnas_excluir]
         
-        # ===== LISTADO CON CHECKBOX POR DEPENDENCIA =====
+        # Para cada dependencia
         for dependencia, grupo in datos_filtrados.groupby(dependencia_col):
             with st.container():
-                st.markdown(f"#### 🏢 {dependencia}")
+                st.markdown(f"### 🏢 {dependencia}")
                 
-                # Crear un checkbox para cada fila del grupo
+                # Checkboxes para cada efectivo
                 for idx, row in grupo.iterrows():
                     nombre = row.get(nombre_col, 'Sin nombre')
                     dni = row.get(dni_col, '') if dni_col else ''
                     label = f"{nombre} (DNI: {dni})" if dni else nombre
                     
-                    # Checkbox para mostrar la tarjeta
                     key = f"ver_{idx}_{dependencia}"
                     mostrar = st.checkbox(f"👤 {label}", key=key, value=False)
                     
@@ -916,9 +881,11 @@ else:
                         mostrar_tarjeta_efectivo(row, nombre_col, dni_col)
                         st.markdown("---")
                 
-                # Botón para editar (solo usuarios comunes)
+                # ===== EDITOR DE DATOS (SOLO PARA USUARIOS COMUNES) =====
                 if not es_admin:
-                    # Mostrar editor de datos debajo de la dependencia
+                    st.markdown("#### ✏️ Editar datos de esta dependencia")
+                    st.caption("Modificá los valores y enviá la propuesta de cambios")
+                    
                     edited_df = st.data_editor(
                         grupo[columnas_a_mostrar],
                         use_container_width=True,
@@ -930,6 +897,7 @@ else:
                     if st.button(f"📨 Enviar propuesta de cambios para {dependencia}", key=f"propuesta_{dependencia}"):
                         cambios_detectados = False
                         
+                        # Verificar agregados
                         if len(edited_df) > len(grupo):
                             nuevas_filas = edited_df.iloc[len(grupo):]
                             for _, nueva_fila in nuevas_filas.iterrows():
@@ -941,6 +909,7 @@ else:
                                     ):
                                         cambios_detectados = True
                         
+                        # Verificar modificaciones
                         for idx, (_, original_row) in enumerate(grupo.iterrows()):
                             if idx < len(edited_df):
                                 edited_row = edited_df.iloc[idx]
@@ -967,7 +936,8 @@ else:
                         else:
                             st.info("ℹ️ No se detectaron cambios para enviar.")
                 else:
-                    # Admin: solo mostrar datos
+                    # Admin: solo muestra los datos
+                    st.markdown("#### 📊 Datos de la dependencia")
                     st.dataframe(grupo[columnas_a_mostrar], use_container_width=True, hide_index=True)
                 
                 st.markdown("---")

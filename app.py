@@ -26,7 +26,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# ========== CSS MEJORADO ==========
+# ========== CSS ==========
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
@@ -67,11 +67,6 @@ st.markdown("""
         content: " ☰ MENÚ";
         color: white;
         font-weight: bold;
-    }
-    
-    button[data-testid="baseButton-header"] svg {
-        stroke: white !important;
-        fill: white !important;
     }
     
     [data-testid="stSidebar"] {
@@ -138,7 +133,7 @@ st.markdown("""
         border: 1px solid #eef2f7;
     }
     
-    /* ===== ESTILO PARA TABLA HTML UNIFICADA ===== */
+    /* ===== ESTILO PARA TABLA HTML ===== */
     .tabla-unificada {
         width: 100%;
         border-collapse: collapse;
@@ -197,13 +192,7 @@ st.markdown("""
     .badge-tabla.funcion { background: #e67e22; }
     .badge-tabla.dependencia { background: #8e44ad; }
     
-    .checkbox-label {
-        display: inline-block;
-        cursor: pointer;
-        padding: 2px 4px;
-    }
-    
-    /* ===== ESTILO PARA TARJETA DE EFECTIVO ===== */
+    /* ===== ESTILO PARA TARJETA ===== */
     .tarjeta-efectivo {
         background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
         border-radius: 16px;
@@ -317,7 +306,6 @@ st.markdown("""
         font-size: 0.75rem;
     }
     
-    /* Ocultar botones de Streamlit que usamos para los checkboxes */
     .stButton button[data-testid="baseButton-secondary"] {
         display: none !important;
     }
@@ -523,7 +511,7 @@ def rechazar_propuesta(id_propuesta):
         st.error(f"Error al rechazar propuesta: {e}")
         return False
 
-# ========== FUNCIÓN PARA MOSTRAR TARJETA DE EFECTIVO ==========
+# ========== FUNCIÓN PARA MOSTRAR TARJETA ==========
 def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
     """Muestra una tarjeta con la información completa de un efectivo"""
     
@@ -603,42 +591,9 @@ if 'mostrar_tarjeta' not in st.session_state:
     st.session_state.mostrar_tarjeta = None
 
 # ========== LOGIN ==========
-if not st.session_state.logged_in:
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        st.title("👮‍♂️ Sistema de Gestión de Personal")
-        st.markdown("### Iniciar Sesión")
-        dni_input = st.text_input("📄 DNI", placeholder="Ingrese su número de documento")
-        clave_input = st.text_input("🔒 Clave", type="password", placeholder="Ingrese su contraseña")
-        if st.button("🚪 Ingresar", type="primary", use_container_width=True):
-            if dni_input and clave_input:
-                usuario = st.session_state.df_usuarios[
-                    (st.session_state.df_usuarios['DNI'].astype(str).str.lower() == dni_input.lower()) &
-                    (st.session_state.df_usuarios['CLAVE'].astype(str).str.lower() == clave_input.lower())
-                ]
-                if not usuario.empty:
-                    st.session_state.logged_in = True
-                    st.session_state.user_data = usuario.iloc[0]
-                    st.rerun()
-                else:
-                    st.error("❌ DNI o Clave incorrectos")
-            else:
-                st.warning("⚠️ Por favor, complete DNI y Clave")
-    with col2:
-        st.markdown("### ℹ️ Información")
-        st.info("""
-        **Sistema de Gestión de Personal**
-        
-        - 🔐 Acceso restringido a personal autorizado
-        - 🔄 Gestión de rotaciones por jerarquía
-        - 📎 Exportación de datos
-        - 📊 Resúmenes estadísticos
-        - 🃏 Visualización en tarjeta de efectivos
-        
-        ---
-        *Si no posee credenciales, contacte al administrador.*
-        """)
-else:
+# PRIMERO: Verificar si el usuario ya está logueado
+if st.session_state.logged_in:
+    # Mostrar la aplicación
     user = st.session_state.user_data
     
     # ========== SIDEBAR ==========
@@ -937,7 +892,7 @@ else:
                 fig_jer.update_layout(height=500, showlegend=False)
                 st.plotly_chart(fig_jer, use_container_width=True)
     
-    # ========== LISTADO ÚNICO CON CHECKBOX FUNCIONAL ==========
+    # ========== LISTADO ==========
     st.markdown(f"## 📋 Listado del personal")
     st.caption(f"Total de registros: {len(datos_filtrados)}")
     
@@ -945,15 +900,11 @@ else:
         columnas_excluir = ['N°', 'N', 'Numero', 'Legajo']
         columnas_a_mostrar = [c for c in datos_filtrados.columns if c not in columnas_excluir]
         
-        # Columnas para la tabla HTML
-        columnas_principales = ['APELLIDO Y NOMBRE', 'DNI', 'JERARQUÍA', 'FUNCIÓN', 'DEPENDENCIA']
-        columnas_tabla = [c for c in columnas_principales if c in datos_filtrados.columns]
-        
         for dependencia, grupo in datos_filtrados.groupby(dependencia_col):
             with st.container():
                 st.markdown(f"### 🏢 {dependencia}")
                 
-                # ===== GENERAR TABLA HTML CON CHECKBOX =====
+                # ===== TABLA HTML =====
                 html = f"""
                 <table class="tabla-unificada">
                     <thead>
@@ -974,10 +925,7 @@ else:
                     jerarquia = row.get('JERARQUÍA', '')
                     funcion = row.get('FUNCIÓN', '')
                     
-                    # ID único para este checkbox
                     checkbox_id = f"chk_{idx}_{dependencia.replace(' ', '_').replace('.', '')}"
-                    
-                    # Determinar si este checkbox está marcado
                     is_checked = st.session_state.get(checkbox_id, False)
                     checked_str = "checked" if is_checked else ""
                     
@@ -1007,29 +955,25 @@ else:
                 
                 st.markdown(html, unsafe_allow_html=True)
                 
-                # ===== PROCESAR CHECKBOX VÍA SESSION_STATE =====
-                # Usamos parámetros de URL para manejar los checkboxes
+                # ===== PROCESAR CHECKBOX =====
                 query_params = st.query_params
                 if 'chk' in query_params:
                     chk_id = query_params['chk']
                     val = query_params.get('val', 'false') == 'true'
                     st.session_state[chk_id] = val
-                    # Limpiar los parámetros para evitar loops
                     st.query_params.clear()
                     st.rerun()
                 
-                # ===== MOSTRAR TARJETA DEL EFECTIVO SELECCIONADO =====
-                tarjeta_mostrada = False
+                # ===== MOSTRAR TARJETA =====
                 for idx, row in grupo.iterrows():
                     checkbox_id = f"chk_{idx}_{dependencia.replace(' ', '_').replace('.', '')}"
                     if st.session_state.get(checkbox_id, False):
                         st.markdown("---")
                         mostrar_tarjeta_efectivo(row, 'APELLIDO Y NOMBRE', 'DNI')
                         st.markdown("---")
-                        tarjeta_mostrada = True
-                        break  # Solo mostrar una tarjeta a la vez
+                        break
                 
-                # ===== EDITOR DE DATOS (SOLO USUARIOS COMUNES) =====
+                # ===== EDITOR =====
                 if not es_admin:
                     st.markdown("---")
                     with st.expander("✏️ Editar datos y enviar propuesta de cambios", expanded=False):
@@ -1133,3 +1077,53 @@ else:
         "</div>", 
         unsafe_allow_html=True
     )
+
+else:
+    # ========== PANTALLA DE LOGIN ==========
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        st.title("👮‍♂️ Sistema de Gestión de Personal")
+        st.markdown("### Iniciar Sesión")
+        
+        dni_input = st.text_input("📄 DNI", placeholder="Ingrese su número de documento")
+        clave_input = st.text_input("🔒 Clave", type="password", placeholder="Ingrese su contraseña")
+        
+        # Botón de login - CON ESTILO VISIBLE
+        col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
+        with col_btn2:
+            if st.button("🚪 Ingresar", type="primary", use_container_width=True):
+                if dni_input and clave_input:
+                    # Buscar usuario
+                    df_usuarios = st.session_state.df_usuarios
+                    usuario = df_usuarios[
+                        (df_usuarios['DNI'].astype(str).str.lower() == dni_input.lower()) &
+                        (df_usuarios['CLAVE'].astype(str).str.lower() == clave_input.lower())
+                    ]
+                    if not usuario.empty:
+                        st.session_state.logged_in = True
+                        st.session_state.user_data = usuario.iloc[0]
+                        st.rerun()
+                    else:
+                        st.error("❌ DNI o Clave incorrectos")
+                else:
+                    st.warning("⚠️ Por favor, complete DNI y Clave")
+        
+        # Mostrar mensaje de error si corresponde
+        if 'login_error' in st.session_state:
+            st.error(st.session_state.login_error)
+            del st.session_state.login_error
+    
+    with col2:
+        st.markdown("### ℹ️ Información")
+        st.info("""
+        **Sistema de Gestión de Personal**
+        
+        - 🔐 Acceso restringido a personal autorizado
+        - 🔄 Gestión de rotaciones por jerarquía
+        - 📎 Exportación de datos
+        - 📊 Resúmenes estadísticos
+        - 🃏 Visualización en tarjeta de efectivos
+        
+        ---
+        *Si no posee credenciales, contacte al administrador.*
+        """)

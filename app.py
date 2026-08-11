@@ -140,19 +140,62 @@ st.markdown("""
     
     /* ===== ESTILO PARA TARJETA DE EFECTIVO ===== */
     .tarjeta-efectivo {
-        background: white;
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
         border-radius: 16px;
-        padding: 25px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        padding: 25px 30px;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.08);
         border: 1px solid #e8edf3;
-        margin: 15px 0;
+        margin: 20px 0;
+        transition: all 0.3s ease;
     }
     
-    .tarjeta-efectivo h3 {
-        color: #1f3a6b;
+    .tarjeta-efectivo:hover {
+        box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+    }
+    
+    .tarjeta-efectivo .header-tarjeta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
         border-bottom: 3px solid #2ecc71;
-        padding-bottom: 10px;
-        margin-top: 0;
+        padding-bottom: 12px;
+        margin-bottom: 18px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    
+    .tarjeta-efectivo .header-tarjeta h3 {
+        color: #1f3a6b;
+        margin: 0;
+        font-size: 1.5rem;
+    }
+    
+    .tarjeta-efectivo .badge-container {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    
+    .tarjeta-efectivo .badge {
+        display: inline-block;
+        padding: 4px 14px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: white;
+        letter-spacing: 0.3px;
+    }
+    
+    .badge-dni { background: #2c3e50; }
+    .badge-jerarquia { background: #3498db; }
+    .badge-funcion { background: #e67e22; }
+    .badge-dependencia { background: #8e44ad; }
+    .badge-sexo { background: #e74c3c; }
+    
+    .tarjeta-efectivo .grid-datos {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 5px 40px;
     }
     
     .tarjeta-efectivo .campo {
@@ -166,21 +209,36 @@ st.markdown("""
         color: #4a5568;
         width: 180px;
         flex-shrink: 0;
+        font-size: 0.85rem;
     }
     
     .tarjeta-efectivo .campo .valor {
-        color: #2d3748;
+        color: #1a202c;
         font-weight: 500;
+        font-size: 0.9rem;
     }
     
-    .tarjeta-efectivo .badge {
-        display: inline-block;
-        background: #2ecc71;
-        color: white;
-        padding: 2px 12px;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 600;
+    .tarjeta-efectivo .campo .valor-destacado {
+        background: #ebf8ff;
+        padding: 0 8px;
+        border-radius: 4px;
+        color: #2b6cb0;
+    }
+    
+    .tarjeta-efectivo .fila-doble {
+        grid-column: 1 / -1;
+    }
+    
+    @media (max-width: 768px) {
+        .tarjeta-efectivo .grid-datos {
+            grid-template-columns: 1fr;
+        }
+        .tarjeta-efectivo .campo .etiqueta {
+            width: 120px;
+        }
+        .tarjeta-efectivo .header-tarjeta h3 {
+            font-size: 1.2rem;
+        }
     }
     
     .footer {
@@ -195,6 +253,16 @@ st.markdown("""
         z-index: 999;
         font-size: 0.75rem;
     }
+    
+    /* Checkbox estilizado */
+    .stCheckbox label {
+        font-weight: 500;
+        color: #2d3748;
+    }
+    
+    .stCheckbox label span {
+        margin-left: 5px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -207,7 +275,6 @@ def cargar_datos_hoja():
             gc = gspread.service_account_from_dict(creds)
             sh = gc.open_by_key("1TH32e7TkB4RYEKxxRhGRnnYxjkT9AF9TeuplxtYih1Y")
             
-            # ===== HOJA PERSONAL =====
             ws_personal = sh.worksheet("Personal")
             all_values = ws_personal.get_all_values()
             if len(all_values) == 0:
@@ -216,35 +283,25 @@ def cargar_datos_hoja():
             
             header = all_values[0]
             data = all_values[1:]
-            
-            # Limpiar encabezados
             header = [str(col).strip().upper() for col in header]
-            
-            # Crear DataFrame
             df_personal = pd.DataFrame(data, columns=header)
-            
-            # Limpiar datos
             for col in df_personal.columns:
                 df_personal[col] = df_personal[col].astype(str).str.strip()
             df_personal.replace('', pd.NA, inplace=True)
             
-            # ===== HOJA USUARIOS =====
             ws_usuarios = sh.worksheet("Usuarios")
             all_users = ws_usuarios.get_all_values()
             if len(all_users) == 0:
                 st.error("La hoja 'Usuarios' está vacía")
                 st.stop()
-            
             header_users = all_users[0]
             header_users = [str(col).strip().upper() for col in header_users]
             data_users = all_users[1:]
             df_usuarios = pd.DataFrame(data_users, columns=header_users)
-            
             for col in df_usuarios.columns:
                 df_usuarios[col] = df_usuarios[col].astype(str).str.strip()
             df_usuarios.replace('', pd.NA, inplace=True)
             
-            # ===== HOJA PROPUESTAS =====
             try:
                 ws_propuestas = sh.worksheet("Propuestas")
                 propuestas_data = ws_propuestas.get_all_values()
@@ -406,16 +463,26 @@ def rechazar_propuesta(id_propuesta):
 def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
     """Muestra una tarjeta con la información completa de un efectivo"""
     
+    nombre = row.get(nombre_col, 'Sin nombre')
+    dni = row.get(dni_col, 'N/A') if dni_col else 'N/A'
+    jerarquia = row.get('JERARQUÍA', 'Sin jerarquía')
+    funcion = row.get('FUNCIÓN', 'Sin función')
+    dependencia = row.get('DEPENDENCIA', 'Sin dependencia')
+    sexo = row.get('SEXO', 'N/A')
+    
     st.markdown(f"""
     <div class="tarjeta-efectivo">
-        <h3>👮‍♂️ {row.get(nombre_col, 'Sin nombre')}</h3>
-        <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
-            <span class="badge">DNI: {row.get(dni_col, 'N/A') if dni_col else 'N/A'}</span>
-            <span class="badge" style="background: #3498db;">{row.get('JERARQUÍA', 'Sin jerarquía')}</span>
-            <span class="badge" style="background: #e67e22;">{row.get('FUNCIÓN', 'Sin función')}</span>
-            <span class="badge" style="background: #8e44ad;">{row.get('DEPENDENCIA', 'Sin dependencia')}</span>
+        <div class="header-tarjeta">
+            <h3>👮‍♂️ {nombre}</h3>
+            <div class="badge-container">
+                <span class="badge badge-dni">🔑 {dni}</span>
+                <span class="badge badge-jerarquia">⭐ {jerarquia}</span>
+                <span class="badge badge-funcion">📋 {funcion}</span>
+                <span class="badge badge-dependencia">🏢 {dependencia}</span>
+                {f'<span class="badge badge-sexo">🚻 {sexo}</span>' if sexo and sexo != 'N/A' else ''}
+            </div>
         </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px 30px;">
+        <div class="grid-datos">
     """, unsafe_allow_html=True)
     
     # Lista de columnas a mostrar (ordenadas y legibles)
@@ -428,14 +495,28 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
         'DIAS DE PROXIMA LICENCIA', 'LEGAJO PERSONAL', 'FECHA DE ULTIMO ASCENSO'
     ]
     
-    # Mostrar solo las columnas que existen en el DataFrame
+    # Contar cuántos campos se muestran para decidir columnas
+    campos_mostrados = 0
+    for col in columnas_ordenadas:
+        if col in row.index:
+            valor = row.get(col, '')
+            if valor and str(valor) != 'nan':
+                campos_mostrados += 1
+    
+    # Si hay más de 8 campos, usar dos columnas, sino una
+    usar_dos_columnas = campos_mostrados > 8
+    
     for col in columnas_ordenadas:
         if col in row.index:
             valor = row.get(col, '')
             if valor and str(valor) != 'nan':
                 etiqueta = col.replace('_', ' ').title()
+                # Omitir etiquetas redundantes que ya están en los badges
+                if col in ['APELLIDO Y NOMBRE', 'DNI', 'JERARQUÍA', 'FUNCIÓN', 'DEPENDENCIA', 'SEXO']:
+                    continue
+                clase_extra = " fila-doble" if not usar_dos_columnas else ""
                 st.markdown(f"""
-                    <div class="campo">
+                    <div class="campo{clase_extra}">
                         <span class="etiqueta">{etiqueta}:</span>
                         <span class="valor">{valor}</span>
                     </div>
@@ -469,8 +550,8 @@ if 'filtros' not in st.session_state:
     st.session_state.filtros = {}
 if 'propuesta_rotacion' not in st.session_state:
     st.session_state.propuesta_rotacion = None
-if 'efectivo_seleccionado' not in st.session_state:
-    st.session_state.efectivo_seleccionado = None
+if 'efectivos_seleccionados' not in st.session_state:
+    st.session_state.efectivos_seleccionados = set()
 
 # ========== LOGIN ==========
 if not st.session_state.logged_in:
@@ -534,7 +615,7 @@ else:
         st.markdown("---")
         if st.button("🚪 Cerrar Sesión", use_container_width=True):
             st.session_state.logged_in = False
-            st.session_state.efectivo_seleccionado = None
+            st.session_state.efectivos_seleccionados = set()
             st.rerun()
     
     # ========== TÍTULO PRINCIPAL ==========
@@ -807,7 +888,7 @@ else:
                 fig_jer.update_layout(height=500, showlegend=False)
                 st.plotly_chart(fig_jer, use_container_width=True)
     
-    # ========== LISTADO DEL PERSONAL CON SELECCIÓN ==========
+    # ========== LISTADO DEL PERSONAL CON CHECKBOX ==========
     st.markdown(f"## 📋 Listado detallado del personal")
     st.caption(f"Total de registros: {len(datos_filtrados)}")
     
@@ -815,112 +896,81 @@ else:
         columnas_excluir = ['N°', 'N', 'Numero', 'Legajo']
         columnas_a_mostrar = [c for c in datos_filtrados.columns if c not in columnas_excluir]
         
-        # ===== CREAR SELECTOR DE EFECTIVOS =====
-        st.markdown("### 👤 Seleccionar efectivo para ver su ficha")
-        
-        # Crear lista de opciones para el selector
-        opciones_efectivos = []
-        for idx, row in datos_filtrados.iterrows():
-            nombre = row.get(nombre_col, 'Sin nombre')
-            dni = row.get(dni_col, '') if dni_col else ''
-            label = f"{nombre} (DNI: {dni})" if dni else nombre
-            opciones_efectivos.append((idx, label))
-        
-        # Selector
-        opciones_labels = [label for _, label in opciones_efectivos]
-        seleccion_index = st.selectbox(
-            "Seleccioná un efectivo:",
-            options=range(len(opciones_labels)),
-            format_func=lambda i: opciones_labels[i],
-            key="selector_efectivo"
-        )
-        
-        if seleccion_index is not None:
-            idx_seleccionado = opciones_efectivos[seleccion_index][0]
-            row_seleccionada = datos_filtrados.loc[idx_seleccionado]
-            
-            # Mostrar tarjeta
-            st.markdown("---")
-            mostrar_tarjeta_efectivo(row_seleccionada, nombre_col, dni_col)
-            st.markdown("---")
-        
-        # ===== LISTADO COMPLETO (con opción de clic para ver tarjeta) =====
-        st.markdown("### 📋 Listado completo")
-        st.caption("Hacé clic en el botón 'Ver ficha' para ver los detalles completos")
-        
-        if es_admin:
-            for dependencia, grupo in datos_filtrados.groupby(dependencia_col):
-                with st.container():
-                    st.markdown(f"#### 🏢 {dependencia}")
+        # ===== LISTADO CON CHECKBOX POR DEPENDENCIA =====
+        for dependencia, grupo in datos_filtrados.groupby(dependencia_col):
+            with st.container():
+                st.markdown(f"#### 🏢 {dependencia}")
+                
+                # Crear un checkbox para cada fila del grupo
+                for idx, row in grupo.iterrows():
+                    nombre = row.get(nombre_col, 'Sin nombre')
+                    dni = row.get(dni_col, '') if dni_col else ''
+                    label = f"{nombre} (DNI: {dni})" if dni else nombre
                     
-                    # Agregar botón "Ver ficha" a cada fila
-                    grupo_con_boton = grupo.copy()
-                    grupo_con_boton = grupo_con_boton.reset_index()
+                    # Checkbox para mostrar la tarjeta
+                    key = f"ver_{idx}_{dependencia}"
+                    mostrar = st.checkbox(f"👤 {label}", key=key, value=False)
                     
-                    # Crear columnas para mostrar
-                    cols_mostrar = columnas_a_mostrar.copy()
+                    if mostrar:
+                        st.markdown("---")
+                        mostrar_tarjeta_efectivo(row, nombre_col, dni_col)
+                        st.markdown("---")
+                
+                # Botón para editar (solo usuarios comunes)
+                if not es_admin:
+                    # Mostrar editor de datos debajo de la dependencia
+                    edited_df = st.data_editor(
+                        grupo[columnas_a_mostrar],
+                        use_container_width=True,
+                        hide_index=True,
+                        num_rows="dynamic",
+                        key=f"editor_{dependencia}"
+                    )
                     
-                    # Mostrar dataframe sin botón (por simplicidad)
+                    if st.button(f"📨 Enviar propuesta de cambios para {dependencia}", key=f"propuesta_{dependencia}"):
+                        cambios_detectados = False
+                        
+                        if len(edited_df) > len(grupo):
+                            nuevas_filas = edited_df.iloc[len(grupo):]
+                            for _, nueva_fila in nuevas_filas.iterrows():
+                                datos_nuevos = nueva_fila.to_dict()
+                                if 'DNI' in datos_nuevos and datos_nuevos['DNI']:
+                                    if guardar_propuesta(
+                                        user['DNI'], user['NOMBRE'], dependencia, 
+                                        "AGREGAR", {}, datos_nuevos
+                                    ):
+                                        cambios_detectados = True
+                        
+                        for idx, (_, original_row) in enumerate(grupo.iterrows()):
+                            if idx < len(edited_df):
+                                edited_row = edited_df.iloc[idx]
+                                if not original_row[columnas_a_mostrar].equals(edited_row[columnas_a_mostrar]):
+                                    datos_originales = {}
+                                    datos_nuevos = {}
+                                    for col in columnas_a_mostrar:
+                                        if str(original_row[col]) != str(edited_row[col]):
+                                            datos_originales[col] = original_row[col]
+                                            datos_nuevos[col] = edited_row[col]
+                                    
+                                    if datos_originales:
+                                        if guardar_propuesta(
+                                            user['DNI'], user['NOMBRE'], dependencia,
+                                            "MODIFICAR", datos_originales, datos_nuevos
+                                        ):
+                                            cambios_detectados = True
+                        
+                        if cambios_detectados:
+                            st.success("✅ Propuesta enviada correctamente. El administrador la revisará.")
+                            st.balloons()
+                            time.sleep(2)
+                            st.rerun()
+                        else:
+                            st.info("ℹ️ No se detectaron cambios para enviar.")
+                else:
+                    # Admin: solo mostrar datos
                     st.dataframe(grupo[columnas_a_mostrar], use_container_width=True, hide_index=True)
-                    
-                    # Botones para ver ficha debajo del dataframe
-                    st.markdown("**Seleccionar efectivo de esta dependencia:**")
-                    opciones_grupo = []
-                    for idx, row in grupo.iterrows():
-                        nombre = row.get(nombre_col, 'Sin nombre')
-                        dni = row.get(dni_col, '') if dni_col else ''
-                        label = f"{nombre} (DNI: {dni})" if dni else nombre
-                        opciones_grupo.append((idx, label))
-                    
-                    if opciones_grupo:
-                        opciones_labels_grupo = [label for _, label in opciones_grupo]
-                        seleccion_grupo = st.selectbox(
-                            f"Efectivos de {dependencia}:",
-                            options=range(len(opciones_labels_grupo)),
-                            format_func=lambda i: opciones_labels_grupo[i],
-                            key=f"selector_{dependencia}"
-                        )
-                        if seleccion_grupo is not None:
-                            idx_grupo = opciones_grupo[seleccion_grupo][0]
-                            row_grupo = grupo.loc[idx_grupo]
-                            st.markdown("---")
-                            mostrar_tarjeta_efectivo(row_grupo, nombre_col, dni_col)
-                            st.markdown("---")
-                    
-                    st.markdown("---")
-        else:
-            # Usuario común: listado con selector
-            for dependencia, grupo in datos_filtrados.groupby(dependencia_col):
-                with st.container():
-                    st.markdown(f"#### 🏢 {dependencia}")
-                    
-                    st.dataframe(grupo[columnas_a_mostrar], use_container_width=True, hide_index=True)
-                    
-                    # Selector para ver ficha
-                    st.markdown("**Seleccionar efectivo para ver su ficha:**")
-                    opciones_grupo = []
-                    for idx, row in grupo.iterrows():
-                        nombre = row.get(nombre_col, 'Sin nombre')
-                        dni = row.get(dni_col, '') if dni_col else ''
-                        label = f"{nombre} (DNI: {dni})" if dni else nombre
-                        opciones_grupo.append((idx, label))
-                    
-                    if opciones_grupo:
-                        opciones_labels_grupo = [label for _, label in opciones_grupo]
-                        seleccion_grupo = st.selectbox(
-                            f"Efectivos de {dependencia}:",
-                            options=range(len(opciones_labels_grupo)),
-                            format_func=lambda i: opciones_labels_grupo[i],
-                            key=f"selector_user_{dependencia}"
-                        )
-                        if seleccion_grupo is not None:
-                            idx_grupo = opciones_grupo[seleccion_grupo][0]
-                            row_grupo = grupo.loc[idx_grupo]
-                            st.markdown("---")
-                            mostrar_tarjeta_efectivo(row_grupo, nombre_col, dni_col)
-                            st.markdown("---")
-                    
-                    st.markdown("---")
+                
+                st.markdown("---")
     else:
         st.warning("⚠️ No hay datos con los filtros seleccionados")
     

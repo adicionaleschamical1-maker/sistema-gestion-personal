@@ -416,15 +416,16 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
             </div>
             '''
     
-    html += f'''
+    html += '''
         </div>
         <div class="pie">
-            <span>📅 Emisión: {datetime.datetime.now().strftime('%d/%m/%Y')}</span>
+            <span>📅 Emisión: ''' + datetime.datetime.now().strftime('%d/%m/%Y') + '''</span>
             <span>🔒 Documento oficial</span>
         </div>
     </div>
     '''
     
+    # --- ESTA ES LA LÍNEA QUE CORRIGE EL ERROR DE VISUALIZACIÓN ---
     st.markdown(html, unsafe_allow_html=True)
 
 # ========== CARGA INICIAL ==========

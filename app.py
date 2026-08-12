@@ -20,188 +20,74 @@ except ImportError:
     OPENPYXL_AVAILABLE = False
 
 st.set_page_config(
-    page_title="Sistema de Gestión de Personal",
+    page_title="Sistema de Gestión de Personal (Con Diagnóstico)",
     layout="wide",
     page_icon="👮‍♂️",
     initial_sidebar_state="collapsed"
 )
 
-# ========== FUNCIÓN PARA LIMPIAR HTML BASURA ==========
-def limpiar_html_profundo(valor):
-    """
-    Elimina cualquier rastro de etiquetas HTML y código basura
-    que se haya guardado en las celdas de Google Sheets.
-    """
-    if pd.isna(valor):
-        return ""
-    valor_str = str(valor)
-    # Elimina todo lo que esté entre < y > (etiquetas HTML completas)
-    valor_str = re.sub(r'<[^>]*>', '', valor_str)
-    # Elimina espacios y saltos de línea extra
-    valor_str = re.sub(r'\s+', ' ', valor_str).strip()
-    return valor_str
+# ==================================================================
+# 🔍 MÓDULO DE DIAGNÓSTICO (Se ejecutará al inicio de la app)
+# ==================================================================
 
-def limpiar_dataframe_completo(df):
-    """
-    Aplica la limpieza profunda a todas las columnas del DataFrame.
-    """
-    df_limpio = df.copy()
-    for col in df_limpio.columns:
-        df_limpio[col] = df_limpio[col].apply(limpiar_html_profundo)
-    return df_limpio
+st.title("🔍 DIAGNÓSTICO DE DATOS")
+st.warning("⚠️ Estamos revisando tus datos para encontrar el HTML basura guardado en celdas.")
 
-# ========== CSS ==========
-st.markdown("""
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-    * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
-    html, body, [class*="css"] { font-size: 14px; line-height: 1.5; }
-    h1 { font-size: 2.2rem !important; font-weight: 700 !important; }
-    h2 { font-size: 1.6rem !important; font-weight: 600 !important; }
-    h3 { font-size: 1.3rem !important; font-weight: 600 !important; }
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    [data-testid="stSidebar"] {
-        background: linear-gradient(135deg, #0f2b3d 0%, #1a3a4f 100%);
-        box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-    }
-    [data-testid="stSidebar"] .stMarkdown, [data-testid="stSidebar"] .stWrite {
-        color: #e8f0f7 !important;
-    }
-    [data-testid="stSidebar"] .stButton button {
-        background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
-        color: white;
-        border: none;
-    }
-    h1 {
-        background: linear-gradient(135deg, #1f3a6b 0%, #2c5a8c 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        margin-bottom: 1rem;
-    }
-    h2 {
-        color: #1f3a6b;
-        border-left: 4px solid #2ecc71;
-        padding-left: 15px;
-        margin: 20px 0;
-    }
-    .stButton button {
-        border-radius: 10px;
-        transition: all 0.3s ease;
-        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-        color: white;
-        border: none;
-    }
-    .stButton button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(52,152,219,0.3);
-    }
-    div[data-testid="stButton"] { display: block !important; }
-    .stButton button[kind="primary"] {
-        background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%) !important;
-        color: white !important;
-        font-weight: 600 !important;
-        padding: 10px 30px !important;
-        border-radius: 30px !important;
-        border: none !important;
-        font-size: 16px !important;
-        width: 100% !important;
-    }
-    .stButton button[kind="primary"]:hover {
-        transform: scale(1.02);
-        box-shadow: 0 4px 20px rgba(46,204,113,0.4);
-    }
-    div[data-testid="stMetric"] {
-        background: white;
-        border-radius: 12px;
-        padding: 15px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        border: 1px solid #eef2f7;
-    }
-    .footer {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        background: linear-gradient(135deg, #1f3a6b 0%, #2c5a8c 100%);
-        color: white;
-        text-align: center;
-        padding: 12px;
-        z-index: 999;
-        font-size: 0.75rem;
-    }
-    .tarjeta-carnet {
-        background: linear-gradient(145deg, #ffffff, #f5f7fa);
-        border-radius: 16px;
-        padding: 25px 30px;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.12);
-        border: 1px solid rgba(255,255,255,0.6);
-        margin: 20px 0;
-        max-width: 650px;
-        position: relative;
-    }
-    .tarjeta-carnet .banda-superior {
-        background: linear-gradient(90deg, #1f3a6b, #2c5a8c);
-        margin: -25px -30px 20px -30px;
-        padding: 12px 30px;
-        border-radius: 16px 16px 0 0;
-        color: white;
-        font-weight: 600;
-        font-size: 0.75rem;
-        letter-spacing: 2px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    .tarjeta-carnet .avatar {
-        background: linear-gradient(135deg, #1f3a6b, #2c5a8c);
-        width: 80px;
-        height: 80px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 34px;
-        font-weight: 700;
-        color: white;
-        box-shadow: 0 4px 15px rgba(31,58,107,0.3);
-        border: 3px solid white;
-        flex-shrink: 0;
-    }
-    .tarjeta-carnet .badge {
-        display: inline-block;
-        padding: 3px 14px;
-        border-radius: 12px;
-        font-size: 0.6rem;
-        font-weight: 600;
-        color: white;
-    }
-    .tarjeta-carnet .dato {
-        display: flex;
-        padding: 6px 12px;
-        background: #f8fafc;
-        border-radius: 8px;
-        align-items: center;
-        border-left: 3px solid #2ecc71;
-        margin-bottom: 4px;
-    }
-    .tarjeta-carnet .dato-extra {
-        border-left-color: #8e44ad;
-    }
-    .tarjeta-carnet .pie {
-        margin-top: 15px;
-        padding-top: 10px;
-        border-top: 1px solid #eef2f7;
-        display: flex;
-        justify-content: space-between;
-        font-size: 0.6rem;
-        color: #a0aec0;
-    }
-</style>
-""", unsafe_allow_html=True)
+try:
+    creds = st.secrets["gsheets"]
+    gc = gspread.service_account_from_dict(creds)
+    sh = gc.open_by_key("1TH32e7TkB4RYEKxxRhGRnnYxjkT9AF9TeuplxtYih1Y")
+    
+    ws_personal = sh.worksheet("Personal")
+    all_values = ws_personal.get_all_values()
+    
+    if len(all_values) == 0:
+        st.error("La hoja 'Personal' está vacía")
+        st.stop()
 
-# ========== FUNCIONES ==========
+    header = [str(col).strip().upper() for col in all_values[0]]
+    data = all_values[1:]
+    df_personal = pd.DataFrame(data, columns=header)
+    
+    for col in df_personal.columns:
+        df_personal[col] = df_personal[col].astype(str).str.strip()
+    df_personal.replace('', pd.NA, inplace=True)
+    
+    st.subheader("📊 Vista previa de los primeros 5 registros")
+    st.dataframe(df_personal.head(5), use_container_width=True)
+
+    st.subheader("🧐 Análisis columna por columna (Buscando HTML)")
+    
+    columnas_sospechosas = []
+    
+    for col in df_personal.columns:
+        # Buscamos si alguna celda en esta columna tiene un tag <
+        filas_con_html = df_personal[df_personal[col].astype(str).str.contains('<', na=False) == True]
+        if not filas_con_html.empty:
+            st.error(f"❌ ¡ERROR ENCONTRADO! La columna **'{col}'** contiene código HTML guardado como texto.")
+            st.write(f"Ejemplo del HTML en esa columna:")
+            st.code(str(filas_con_html[col].iloc[0])[:200], language="html")
+            columnas_sospechosas.append(col)
+        else:
+            st.success(f"✅ La columna '{col}' parece limpia (sin HTML).")
+
+    if not columnas_sospechosas:
+        st.success("🎉 ¡Buena noticia! Los datos cargados no tienen HTML basura. Si ves el error, significa que se está generando en tiempo real dentro del código.")
+    else:
+        st.error(f"⚠️ Se encontró HTML basura en las siguientes columnas: {columnas_sospechosas}")
+        st.info("💡 **Solución:** Fíjate en el nombre de la columna que apareció en rojo. En el siguiente paso haremos una limpieza quirúrgica solo para esa columna.")
+
+except Exception as e:
+    st.error(f"Hubo un error al cargar la hoja de cálculo para el diagnóstico: {e}")
+
+st.divider()
+st.title("👮‍♂️ Sistema de Gestión de Personal (Continuación)")
+st.caption("La app real continúa debajo...")
+
+# ==================================================================
+# 💾 CARGA DE DATOS REAL (Para ejecutar la app a continuación)
+# ==================================================================
+
 @st.cache_data(ttl=60)
 def cargar_datos_hoja():
     with st.spinner("🔄 Cargando datos..."):
@@ -578,18 +464,14 @@ if st.session_state.logged_in:
                     st.info("👑 **Administrador** - Solo lectura")
                     st.dataframe(grupo[columnas_a_mostrar], use_container_width=True, hide_index=True)
                 else:
-                    # ===== RESTAURAMOS EL MENSAJE Y EL BOTÓN =====
                     st.markdown("""
                     <div style="background: #e8f5e9; padding: 10px 15px; border-radius: 10px; border-left: 5px solid #2ecc71; margin-bottom: 10px; font-size: 0.85rem;">
                         ✏️ Modificá los valores y enviá la propuesta de cambios
                     </div>
                     """, unsafe_allow_html=True)
                     
-                    # Limpiamos el HTML basura de Google Sheets ANTES de mostrarlo
-                    grupo_limpio = limpiar_dataframe_completo(grupo[columnas_a_mostrar])
-                    
                     edited_df = st.data_editor(
-                        grupo_limpio,
+                        grupo[columnas_a_mostrar],
                         use_container_width=True,
                         hide_index=True,
                         num_rows="dynamic",

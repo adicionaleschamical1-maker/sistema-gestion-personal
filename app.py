@@ -428,7 +428,7 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
     else:
         iniciales = nombre[:2].upper() if nombre else '??'
     
-    # ===== TARJETA CON DISEÑO MEJORADO =====
+    # ===== TARJETA CON BADGES MEJORADOS =====
     st.markdown(f"""
     <div style="background: #ffffff;
                 border-radius: 20px;
@@ -457,11 +457,19 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
             <div>
                 <h2 style="color: #1f3a6b; margin: 0; font-size: 1.8rem; font-weight: 700;">{nombre}</h2>
                 <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px;">
-                    <span style="display: inline-block; padding: 4px 16px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; color: white; background: #2c3e50;">🔑 {dni}</span>
-                    <span style="display: inline-block; padding: 4px 16px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; color: white; background: #3498db;">⭐ {jerarquia}</span>
-                    <span style="display: inline-block; padding: 4px 16px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; color: white; background: #e67e22;">📋 {funcion}</span>
-                    <span style="display: inline-block; padding: 4px 16px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; color: white; background: #8e44ad;">🏢 {dependencia}</span>
-                    {f'<span style="display: inline-block; padding: 4px 16px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; color: white; background: #e74c3c;">🚻 {sexo}</span>' if sexo and sexo != 'N/A' else ''}
+                    <span style="display: inline-block; padding: 4px 16px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; color: white; background: #2c3e50;">
+                        🔑 DNI: {dni}
+                    </span>
+                    <span style="display: inline-block; padding: 4px 16px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; color: white; background: #3498db;">
+                        ⭐ Jerarquía: {jerarquia}
+                    </span>
+                    <span style="display: inline-block; padding: 4px 16px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; color: white; background: #e67e22;">
+                        📋 Función: {funcion}
+                    </span>
+                    <span style="display: inline-block; padding: 4px 16px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; color: white; background: #8e44ad;">
+                        🏢 Dependencia: {dependencia}
+                    </span>
+                    {f'<span style="display: inline-block; padding: 4px 16px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; color: white; background: #e74c3c;">🚻 Sexo: {sexo}</span>' if sexo and sexo != 'N/A' else ''}
                 </div>
             </div>
         </div>

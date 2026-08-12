@@ -428,7 +428,7 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
     else:
         iniciales = nombre[:2].upper() if nombre else '??'
     
-    # ===== TARJETA CON BADGES MEJORADOS =====
+    # ===== TARJETA CON FORMATO LISTA VERTICAL =====
     st.markdown(f"""
     <div style="background: #ffffff;
                 border-radius: 20px;
@@ -439,6 +439,8 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
                 position: relative;
                 overflow: hidden;">
         <div style="position: absolute; top: 0; left: 0; right: 0; height: 6px; background: linear-gradient(90deg, #2ecc71, #3498db, #8e44ad);"></div>
+        
+        <!-- Encabezado con avatar -->
         <div style="display: flex; align-items: center; gap: 20px; margin: 10px 0 25px 0; flex-wrap: wrap; padding-top: 10px;">
             <div style="background: linear-gradient(135deg, #2ecc71, #27ae60);
                         width: 80px;
@@ -457,36 +459,26 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
             <div>
                 <h2 style="color: #1f3a6b; margin: 0; font-size: 1.8rem; font-weight: 700;">{nombre}</h2>
                 <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px;">
-                    <span style="display: inline-block; padding: 4px 16px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; color: white; background: #2c3e50;">
-                        🔑 DNI: {dni}
-                    </span>
-                    <span style="display: inline-block; padding: 4px 16px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; color: white; background: #3498db;">
-                        ⭐ Jerarquía: {jerarquia}
-                    </span>
-                    <span style="display: inline-block; padding: 4px 16px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; color: white; background: #e67e22;">
-                        📋 Función: {funcion}
-                    </span>
-                    <span style="display: inline-block; padding: 4px 16px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; color: white; background: #8e44ad;">
-                        🏢 Dependencia: {dependencia}
-                    </span>
+                    <span style="display: inline-block; padding: 4px 16px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; color: white; background: #2c3e50;">🔑 DNI: {dni}</span>
+                    <span style="display: inline-block; padding: 4px 16px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; color: white; background: #3498db;">⭐ Jerarquía: {jerarquia}</span>
+                    <span style="display: inline-block; padding: 4px 16px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; color: white; background: #e67e22;">📋 Función: {funcion}</span>
+                    <span style="display: inline-block; padding: 4px 16px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; color: white; background: #8e44ad;">🏢 Dependencia: {dependencia}</span>
                     {f'<span style="display: inline-block; padding: 4px 16px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; color: white; background: #e74c3c;">🚻 Sexo: {sexo}</span>' if sexo and sexo != 'N/A' else ''}
                 </div>
             </div>
         </div>
         
-        <!-- Grid de datos mejorado -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px 30px; margin-top: 20px;">
+        <!-- Datos en formato lista vertical -->
+        <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 10px;">
     """, unsafe_allow_html=True)
     
-    # Datos principales en dos columnas con fondo alternado
-    contador = 0
+    # Datos principales en formato lista vertical
     for col in columnas_ordenadas:
         if col in row.index:
             valor = row.get(col, '')
             if valor and str(valor) != 'nan':
                 if col in ['APELLIDO Y NOMBRE', 'DNI', 'JERARQUÍA', 'FUNCIÓN', 'DEPENDENCIA', 'SEXO']:
                     continue
-                contador += 1
                 etiqueta = col.replace('_', ' ').title()
                 # Iconos según el campo
                 icono = "📌"
@@ -509,26 +501,23 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
                 elif "OBS" in col:
                     icono = "📝"
                 
-                # Fondo alternado para mejor legibilidad
-                bg_color = "#f8fafc" if contador % 2 == 0 else "#ffffff"
-                
                 st.markdown(f"""
                     <div style="display: flex; 
-                                padding: 10px 12px; 
-                                background: {bg_color};
-                                border-radius: 8px;
+                                padding: 10px 15px; 
+                                background: #f8fafc;
+                                border-radius: 10px;
                                 align-items: center;
-                                border-left: 3px solid #2ecc71;">
+                                border-left: 4px solid #2ecc71;">
                         <span style="font-weight: 600; 
-                                    color: #4a5568; 
-                                    width: 160px; 
+                                    color: #1f3a6b; 
+                                    width: 200px; 
                                     flex-shrink: 0; 
-                                    font-size: 0.8rem;">
+                                    font-size: 0.85rem;">
                             {icono} {etiqueta}:
                         </span>
                         <span style="color: #1a202c; 
                                     font-weight: 500; 
-                                    font-size: 0.9rem;">
+                                    font-size: 0.95rem;">
                             {valor}
                         </span>
                     </div>
@@ -538,26 +527,24 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
     for col in columnas_extra:
         valor = row.get(col, '')
         if valor and str(valor) != 'nan':
-            contador += 1
             etiqueta = col.replace('_', ' ').title()
-            bg_color = "#f8fafc" if contador % 2 == 0 else "#ffffff"
             st.markdown(f"""
                 <div style="display: flex; 
-                            padding: 10px 12px; 
-                            background: {bg_color};
-                            border-radius: 8px;
+                            padding: 10px 15px; 
+                            background: #f8fafc;
+                            border-radius: 10px;
                             align-items: center;
-                            border-left: 3px solid #8e44ad;">
+                            border-left: 4px solid #8e44ad;">
                     <span style="font-weight: 600; 
-                                color: #4a5568; 
-                                width: 160px; 
+                                color: #1f3a6b; 
+                                width: 200px; 
                                 flex-shrink: 0; 
-                                font-size: 0.8rem;">
+                                font-size: 0.85rem;">
                         📌 {etiqueta}:
                     </span>
                     <span style="color: #1a202c; 
                                 font-weight: 500; 
-                                font-size: 0.9rem;">
+                                font-size: 0.95rem;">
                         {valor}
                     </span>
                 </div>

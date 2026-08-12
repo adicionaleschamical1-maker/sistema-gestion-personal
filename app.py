@@ -10,7 +10,6 @@ import io
 import plotly.express as px
 import plotly.graph_objects as go
 
-# Intentar importar openpyxl para Excel formateado
 try:
     from openpyxl import load_workbook
     from openpyxl.styles import Font, PatternFill, Alignment
@@ -26,6 +25,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# ========== CSS ==========
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
@@ -36,24 +36,6 @@ st.markdown("""
     h3 { font-size: 1.3rem !important; font-weight: 600 !important; }
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    button[data-testid="baseButton-header"] {
-        background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%) !important;
-        color: white !important;
-        border-radius: 30px !important;
-        padding: 8px 20px 8px 15px !important;
-        margin: 10px 0 10px 15px !important;
-        font-weight: bold !important;
-        font-size: 14px !important;
-    }
-    button[data-testid="baseButton-header"]:hover {
-        transform: scale(1.05);
-        box-shadow: 0 4px 15px rgba(46,204,113,0.4);
-    }
-    button[data-testid="baseButton-header"]::after {
-        content: " ☰ MENÚ";
-        color: white;
-        font-weight: bold;
-    }
     [data-testid="stSidebar"] {
         background: linear-gradient(135deg, #0f2b3d 0%, #1a3a4f 100%);
         box-shadow: 2px 0 10px rgba(0,0,0,0.1);
@@ -65,10 +47,6 @@ st.markdown("""
         background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
         color: white;
         border: none;
-    }
-    [data-testid="stSidebar"] .stButton button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(46,204,113,0.3);
     }
     h1 {
         background: linear-gradient(135deg, #1f3a6b 0%, #2c5a8c 100%);
@@ -83,7 +61,6 @@ st.markdown("""
         padding-left: 15px;
         margin: 20px 0;
     }
-    .stAlert { border-radius: 10px; border-left: 4px solid; }
     .stButton button {
         border-radius: 10px;
         transition: all 0.3s ease;
@@ -129,13 +106,81 @@ st.markdown("""
         z-index: 999;
         font-size: 0.75rem;
     }
+    /* Tarjeta carnet */
+    .tarjeta-carnet {
+        background: linear-gradient(145deg, #ffffff, #f5f7fa);
+        border-radius: 16px;
+        padding: 25px 30px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+        border: 1px solid rgba(255,255,255,0.6);
+        margin: 20px 0;
+        max-width: 650px;
+        position: relative;
+    }
+    .tarjeta-carnet .banda-superior {
+        background: linear-gradient(90deg, #1f3a6b, #2c5a8c);
+        margin: -25px -30px 20px -30px;
+        padding: 12px 30px;
+        border-radius: 16px 16px 0 0;
+        color: white;
+        font-weight: 600;
+        font-size: 0.75rem;
+        letter-spacing: 2px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .tarjeta-carnet .avatar {
+        background: linear-gradient(135deg, #1f3a6b, #2c5a8c);
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 34px;
+        font-weight: 700;
+        color: white;
+        box-shadow: 0 4px 15px rgba(31,58,107,0.3);
+        border: 3px solid white;
+        flex-shrink: 0;
+    }
+    .tarjeta-carnet .badge {
+        display: inline-block;
+        padding: 3px 14px;
+        border-radius: 12px;
+        font-size: 0.6rem;
+        font-weight: 600;
+        color: white;
+    }
+    .tarjeta-carnet .dato {
+        display: flex;
+        padding: 6px 12px;
+        background: #f8fafc;
+        border-radius: 8px;
+        align-items: center;
+        border-left: 3px solid #2ecc71;
+        margin-bottom: 4px;
+    }
+    .tarjeta-carnet .dato-extra {
+        border-left-color: #8e44ad;
+    }
+    .tarjeta-carnet .pie {
+        margin-top: 15px;
+        padding-top: 10px;
+        border-top: 1px solid #eef2f7;
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.6rem;
+        color: #a0aec0;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# ========== FUNCIONES DE CARGA ==========
+# ========== FUNCIONES ==========
 @st.cache_data(ttl=60)
 def cargar_datos_hoja():
-    with st.spinner("🔄 Cargando datos desde Google Sheets..."):
+    with st.spinner("🔄 Cargando datos..."):
         try:
             creds = st.secrets["gsheets"]
             gc = gspread.service_account_from_dict(creds)
@@ -177,18 +222,16 @@ def cargar_datos_hoja():
                     df_propuestas = pd.DataFrame(prop_data, columns=header_prop)
                 else:
                     df_propuestas = pd.DataFrame(columns=['ID', 'FECHA', 'USUARIO_DNI', 'USUARIO_NOMBRE', 'DEPENDENCIA', 'ACCION', 'DATOS_ORIGINALES', 'DATOS_NUEVOS', 'ESTADO'])
-            except gspread.exceptions.WorksheetNotFound:
+            except:
                 df_propuestas = pd.DataFrame(columns=['ID', 'FECHA', 'USUARIO_DNI', 'USUARIO_NOMBRE', 'DEPENDENCIA', 'ACCION', 'DATOS_ORIGINALES', 'DATOS_NUEVOS', 'ESTADO'])
                 ws_propuestas = sh.add_worksheet(title="Propuestas", rows=1000, cols=20)
                 ws_propuestas.update([df_propuestas.columns.tolist()])
             
             return df_personal, df_usuarios, df_propuestas
-            
         except Exception as e:
-            st.error(f"Error al cargar datos: {e}")
+            st.error(f"Error: {e}")
             st.stop()
 
-# ========== FUNCIÓN PARA GUARDAR PROPUESTAS ==========
 def get_new_connection():
     creds = st.secrets["gsheets"]
     gc = gspread.service_account_from_dict(creds)
@@ -198,7 +241,6 @@ def guardar_propuesta(usuario_dni, usuario_nombre, dependencia, accion, datos_or
     try:
         sh = get_new_connection()
         ws = sh.worksheet("Propuestas")
-        
         propuestas_data = ws.get_all_values()
         if len(propuestas_data) > 1:
             header_prop = [str(col).strip().upper() for col in propuestas_data[0]]
@@ -223,52 +265,34 @@ def guardar_propuesta(usuario_dni, usuario_nombre, dependencia, accion, datos_or
         }])
         
         propuestas_df = pd.concat([propuestas_df, nueva_propuesta], ignore_index=True)
-        
         ws.clear()
         ws.update([propuestas_df.columns.tolist()] + propuestas_df.values.tolist())
-        
         st.session_state.df_propuestas = propuestas_df
         return True
-    except Exception as e:
-        st.error(f"Error al guardar propuesta: {e}")
+    except:
         return False
 
 def aprobar_propuesta(id_propuesta):
     try:
         sh = get_new_connection()
-        
         ws_propuestas = sh.worksheet("Propuestas")
         propuestas_data = ws_propuestas.get_all_values()
         if len(propuestas_data) <= 1:
             return False
-        
         header_prop = [str(col).strip().upper() for col in propuestas_data[0]]
         prop_data = propuestas_data[1:]
         propuestas_df = pd.DataFrame(prop_data, columns=header_prop)
-        
         propuesta = propuestas_df[propuestas_df['ID'] == str(id_propuesta)].iloc[0]
-        
         if propuesta['ESTADO'] != 'PENDIENTE':
             return False
-        
         accion = propuesta['ACCION']
         datos_nuevos = json.loads(propuesta['DATOS_NUEVOS'])
-        
         ws_personal = sh.worksheet("Personal")
         all_data = ws_personal.get_all_values()
         header = [str(col).strip().upper() for col in all_data[0]]
-        
         if accion == 'AGREGAR':
-            col_dni = header.index('DNI') if 'DNI' in header else None
-            if col_dni is not None:
-                dnis_existentes = [row[col_dni] if len(row) > col_dni else '' for row in all_data[1:]]
-                if datos_nuevos.get('DNI') in dnis_existentes:
-                    st.warning("⚠️ El DNI ya existe en la base de datos")
-                    return False
-            
             nueva_fila = [datos_nuevos.get(col, '') for col in header]
             ws_personal.append_row(nueva_fila)
-        
         elif accion == 'MODIFICAR':
             dni_modificar = datos_nuevos.get('DNI')
             if dni_modificar:
@@ -280,7 +304,6 @@ def aprobar_propuesta(id_propuesta):
                                 if col_name in datos_nuevos:
                                     ws_personal.update_cell(i, col_idx+1, str(datos_nuevos[col_name]))
                             break
-        
         elif accion == 'ELIMINAR':
             dni_eliminar = datos_nuevos.get('DNI')
             if dni_eliminar:
@@ -290,45 +313,34 @@ def aprobar_propuesta(id_propuesta):
                         if len(row) > col_dni_idx and row[col_dni_idx] == str(dni_eliminar):
                             ws_personal.delete_rows(i)
                             break
-        
         propuestas_df.loc[propuestas_df['ID'] == str(id_propuesta), 'ESTADO'] = 'APROBADO'
         ws_propuestas.clear()
         ws_propuestas.update([propuestas_df.columns.tolist()] + propuestas_df.values.tolist())
-        
         st.session_state.df_personal, st.session_state.df_usuarios, st.session_state.df_propuestas = cargar_datos_hoja()
         return True
-    except Exception as e:
-        st.error(f"Error al aprobar propuesta: {e}")
+    except:
         return False
 
 def rechazar_propuesta(id_propuesta):
     try:
         sh = get_new_connection()
-        
         ws_propuestas = sh.worksheet("Propuestas")
         propuestas_data = ws_propuestas.get_all_values()
         if len(propuestas_data) <= 1:
             return False
-        
         header_prop = [str(col).strip().upper() for col in propuestas_data[0]]
         prop_data = propuestas_data[1:]
         propuestas_df = pd.DataFrame(prop_data, columns=header_prop)
-        
         propuestas_df.loc[propuestas_df['ID'] == str(id_propuesta), 'ESTADO'] = 'RECHAZADO'
-        
         ws_propuestas.clear()
         ws_propuestas.update([propuestas_df.columns.tolist()] + propuestas_df.values.tolist())
-        
         st.session_state.df_propuestas = propuestas_df
         return True
-    except Exception as e:
-        st.error(f"Error al rechazar propuesta: {e}")
+    except:
         return False
 
-# ========== FUNCIÓN PARA MOSTRAR TARJETA ==========
+# ========== TARJETA ==========
 def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
-    """Muestra una tarjeta tipo carnet físico con la información del efectivo"""
-    
     nombre = row.get(nombre_col, 'Sin nombre')
     dni = row.get(dni_col, 'N/A') if dni_col else 'N/A'
     jerarquia = row.get('JERARQUÍA', 'Sin jerarquía')
@@ -336,95 +348,44 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
     dependencia = row.get('DEPENDENCIA', 'Sin dependencia')
     sexo = row.get('SEXO', 'N/A')
     
-    # ===== INICIALES PARA AVATAR =====
     palabras = nombre.split()
-    if len(palabras) >= 2:
-        iniciales = palabras[0][0] + palabras[1][0]
-    else:
-        iniciales = nombre[:2].upper() if nombre else '??'
+    iniciales = (palabras[0][0] + palabras[1][0]) if len(palabras) >= 2 else nombre[:2].upper()
     
-    # ===== TARJETA TIPO CARNET FÍSICO =====
-    st.markdown(f"""
-    <div style="background: linear-gradient(145deg, #ffffff, #f5f7fa);
-                border-radius: 16px;
-                padding: 25px 30px;
-                box-shadow: 0 8px 32px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.8);
-                border: 1px solid rgba(255,255,255,0.6);
-                margin: 20px 0;
-                max-width: 650px;
-                position: relative;">
-        
-        <!-- Sello decorativo -->
-        <div style="position: absolute; top: 15px; right: 20px; opacity: 0.08; font-size: 60px;">👮</div>
-        
-        <!-- Banda superior -->
-        <div style="background: linear-gradient(90deg, #1f3a6b, #2c5a8c);
-                    margin: -25px -30px 20px -30px;
-                    padding: 12px 30px;
-                    border-radius: 16px 16px 0 0;
-                    color: white;
-                    font-weight: 600;
-                    font-size: 0.75rem;
-                    letter-spacing: 2px;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;">
+    html = f'''
+    <div class="tarjeta-carnet">
+        <div class="banda-superior">
             <span>👮 POLICÍA DE LA PROVINCIA</span>
-            <span style="font-size: 0.6rem; opacity: 0.7;">FICHA N° {dni.replace('.', '')[:6]}</span>
+            <span style="font-size:0.6rem;opacity:0.7;">FICHA N° {dni.replace(".","")[:6]}</span>
         </div>
-        
-        <!-- Encabezado con avatar -->
-        <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px;">
-            <div style="background: linear-gradient(135deg, #1f3a6b, #2c5a8c);
-                        width: 80px;
-                        height: 80px;
-                        border-radius: 50%;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        font-size: 34px;
-                        font-weight: 700;
-                        color: white;
-                        box-shadow: 0 4px 15px rgba(31,58,107,0.3);
-                        border: 3px solid white;
-                        flex-shrink: 0;">
-                {iniciales}
-            </div>
-            <div style="flex: 1;">
-                <div style="font-size: 1.3rem; font-weight: 700; color: #1f3a6b; line-height: 1.2;">{nombre}</div>
-                <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;">
-                    <span style="background: #2c3e50; color: white; padding: 3px 14px; border-radius: 12px; font-size: 0.6rem; font-weight: 600;">DNI: {dni}</span>
-                    <span style="background: #3498db; color: white; padding: 3px 14px; border-radius: 12px; font-size: 0.6rem; font-weight: 600;">{jerarquia}</span>
-                    <span style="background: #e67e22; color: white; padding: 3px 14px; border-radius: 12px; font-size: 0.6rem; font-weight: 600;">{funcion}</span>
-                    <span style="background: #8e44ad; color: white; padding: 3px 14px; border-radius: 12px; font-size: 0.6rem; font-weight: 600;">{dependencia}</span>
-                    {f'<span style="background: #e74c3c; color: white; padding: 3px 14px; border-radius: 12px; font-size: 0.6rem; font-weight: 600;">{sexo}</span>' if sexo and sexo != 'N/A' else ''}
+        <div style="display:flex;align-items:center;gap:20px;margin-bottom:20px;">
+            <div class="avatar">{iniciales}</div>
+            <div>
+                <div style="font-size:1.3rem;font-weight:700;color:#1f3a6b;">{nombre}</div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
+                    <span class="badge" style="background:#2c3e50;">DNI: {dni}</span>
+                    <span class="badge" style="background:#3498db;">{jerarquia}</span>
+                    <span class="badge" style="background:#e67e22;">{funcion}</span>
+                    <span class="badge" style="background:#8e44ad;">{dependencia}</span>
+                    {f'<span class="badge" style="background:#e74c3c;">{sexo}</span>' if sexo and sexo != 'N/A' else ''}
                 </div>
             </div>
         </div>
-        
-        <!-- Línea divisoria con efecto -->
-        <div style="border-top: 2px dashed #dce3ed; margin: 5px 0 15px 0;"></div>
-        
-        <!-- Datos en formato lista vertical -->
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-    """, unsafe_allow_html=True)
+        <div style="border-top:2px dashed #dce3ed;margin:5px 0 15px 0;"></div>
+        <div>
+    '''
     
-    # ===== DATOS =====
-    columnas_ordenadas = [
-        'APELLIDO Y NOMBRE', 'DNI', 'JERARQUÍA', 'FUNCIÓN', 'DEPENDENCIA',
-        'SEXO', 'MARCA DE ARMA', 'N° DE ARMA', 'OBS', 'SITUACION',
+    columnas = [
+        'MARCA DE ARMA', 'N° DE ARMA', 'OBS', 'SITUACION',
         'GRUPO SANGUINEO', 'N° DE TELEFONO', 'DOMICILIO REAL (DONDE VIVE)',
         'FECHA DE NACIMIENTO', 'EDAD', 'ANTIGUEDAD',
         'DIAS DE LICENCIA DISPONIBLE', 'DIAS DE LICENCIA TOMADA',
         'DIAS DE PROXIMA LICENCIA', 'LEGAJO PERSONAL', 'FECHA DE ULTIMO ASCENSO'
     ]
     
-    for col in columnas_ordenadas:
+    for col in columnas:
         if col in row.index:
             valor = row.get(col, '')
             if valor and str(valor) != 'nan':
-                if col in ['APELLIDO Y NOMBRE', 'DNI', 'JERARQUÍA', 'FUNCIÓN', 'DEPENDENCIA', 'SEXO']:
-                    continue
                 etiqueta = col.replace('_', ' ').title()
                 icono = "📌"
                 if "TELEFONO" in col: icono = "📞"
@@ -436,65 +397,35 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
                 elif "LICENCIA" in col: icono = "📋"
                 elif "ANTIGUEDAD" in col: icono = "⏳"
                 
-                st.markdown(f"""
-                    <div style="display: flex; 
-                                padding: 6px 12px; 
-                                background: #f8fafc;
-                                border-radius: 8px;
-                                align-items: center;
-                                border-left: 3px solid #2ecc71;">
-                        <span style="font-weight: 600; 
-                                    color: #4a5568; 
-                                    width: 160px; 
-                                    flex-shrink: 0; 
-                                    font-size: 0.78rem;">
-                            {icono} {etiqueta}:
-                        </span>
-                        <span style="color: #1a202c; 
-                                    font-weight: 500; 
-                                    font-size: 0.85rem;">
-                            {valor}
-                        </span>
-                    </div>
-                """, unsafe_allow_html=True)
+                html += f'''
+                <div class="dato">
+                    <span style="font-weight:600;color:#4a5568;width:160px;flex-shrink:0;font-size:0.78rem;">{icono} {etiqueta}:</span>
+                    <span style="color:#1a202c;font-weight:500;font-size:0.85rem;">{valor}</span>
+                </div>
+                '''
     
-    columnas_extra = [c for c in row.index if c not in columnas_ordenadas and c not in ['N°', 'N', 'Numero', 'Legajo']]
+    columnas_extra = [c for c in row.index if c not in columnas and c not in ['APELLIDO Y NOMBRE', 'DNI', 'JERARQUÍA', 'FUNCIÓN', 'DEPENDENCIA', 'SEXO', 'N°', 'N', 'Numero', 'Legajo']]
     for col in columnas_extra:
         valor = row.get(col, '')
         if valor and str(valor) != 'nan':
             etiqueta = col.replace('_', ' ').title()
-            st.markdown(f"""
-                <div style="display: flex; 
-                            padding: 6px 12px; 
-                            background: #f8fafc;
-                            border-radius: 8px;
-                            align-items: center;
-                            border-left: 3px solid #8e44ad;">
-                    <span style="font-weight: 600; 
-                                color: #4a5568; 
-                                width: 160px; 
-                                flex-shrink: 0; 
-                                font-size: 0.78rem;">
-                        📌 {etiqueta}:
-                    </span>
-                    <span style="color: #1a202c; 
-                                font-weight: 500; 
-                                font-size: 0.85rem;">
-                        {valor}
-                    </span>
-                </div>
-            """, unsafe_allow_html=True)
+            html += f'''
+            <div class="dato dato-extra">
+                <span style="font-weight:600;color:#4a5568;width:160px;flex-shrink:0;font-size:0.78rem;">📌 {etiqueta}:</span>
+                <span style="color:#1a202c;font-weight:500;font-size:0.85rem;">{valor}</span>
+            </div>
+            '''
     
-    st.markdown(f"""
+    html += f'''
         </div>
-        
-        <!-- Pie de tarjeta -->
-        <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid #eef2f7; display: flex; justify-content: space-between; font-size: 0.6rem; color: #a0aec0;">
+        <div class="pie">
             <span>📅 Emisión: {datetime.datetime.now().strftime('%d/%m/%Y')}</span>
             <span>🔒 Documento oficial</span>
         </div>
     </div>
-    """, unsafe_allow_html=True)
+    '''
+    
+    st.markdown(html, unsafe_allow_html=True)
 
 # ========== CARGA INICIAL ==========
 if 'df_personal' not in st.session_state:
@@ -505,12 +436,6 @@ if 'df_personal' not in st.session_state:
 
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
-if 'filtros' not in st.session_state:
-    st.session_state.filtros = {}
-if 'propuesta_rotacion' not in st.session_state:
-    st.session_state.propuesta_rotacion = None
-if 'mostrar_tarjeta' not in st.session_state:
-    st.session_state.mostrar_tarjeta = None
 
 # ========== LOGIN ==========
 if st.session_state.logged_in:
@@ -525,18 +450,17 @@ if st.session_state.logged_in:
         st.markdown(f"**⭐ Jerarquía:** {user['JERARQUÍA']}")
         st.markdown("---")
         if st.button("🔄 REFRESCAR DATOS", use_container_width=True):
-            with st.spinner("Actualizando datos..."):
+            with st.spinner("Actualizando..."):
                 resultado = cargar_datos_hoja()
                 st.session_state.df_personal = resultado[0]
                 st.session_state.df_usuarios = resultado[1]
                 st.session_state.df_propuestas = resultado[2]
-                st.success("✅ Datos actualizados correctamente")
+                st.success("✅ Datos actualizados")
                 time.sleep(1)
                 st.rerun()
         st.markdown("---")
         if st.button("🚪 Cerrar Sesión", use_container_width=True):
             st.session_state.logged_in = False
-            st.session_state.mostrar_tarjeta = None
             st.rerun()
     
     st.title("👮‍♂️ Sistema de Gestión de Personal")
@@ -561,64 +485,6 @@ if st.session_state.logged_in:
         
         if propuestas_pendientes > 0:
             st.warning(f"⚠️ **¡ATENCIÓN!** Hay {propuestas_pendientes} propuestas pendientes", icon="⚠️")
-            with st.expander(f"📋 Ver {propuestas_pendientes} propuestas", expanded=True):
-                for _, prop in st.session_state.df_propuestas.iterrows():
-                    def get_val(row, posibles):
-                        for p in posibles:
-                            if p in row.index:
-                                return row[p]
-                        return "No disponible"
-                    
-                    pid = get_val(prop, ['ID', 'id'])
-                    pfecha = get_val(prop, ['FECHA', 'Fecha'])
-                    pnombre = get_val(prop, ['USUARIO_NOMBRE', 'Usuario_Nombre'])
-                    pdni = get_val(prop, ['USUARIO_DNI', 'Usuario_DNI'])
-                    pdependencia = get_val(prop, ['DEPENDENCIA', 'Dependencia'])
-                    paccion = get_val(prop, ['ACCION', 'Accion'])
-                    pestado = get_val(prop, ['ESTADO', 'Estado'])
-                    
-                    if pestado.upper() != 'PENDIENTE':
-                        continue
-                    
-                    st.markdown(f"### 📋 Propuesta #{pid}")
-                    st.markdown(f"**Fecha:** {pfecha}")
-                    st.markdown(f"**Usuario:** {pnombre} (DNI: {pdni})")
-                    st.markdown(f"**Dependencia:** {pdependencia}")
-                    st.markdown(f"**Acción:** {paccion}")
-                    
-                    if paccion == 'MODIFICAR':
-                        for col in prop.index:
-                            if 'DATOS_ORIGINALES' in col.upper():
-                                orig_col = col
-                            if 'DATOS_NUEVOS' in col.upper():
-                                new_col = col
-                        if orig_col and new_col:
-                            try:
-                                orig = json.loads(prop[orig_col])
-                                nuevo = json.loads(prop[new_col])
-                                cambios = []
-                                for c in set(orig.keys()) | set(nuevo.keys()):
-                                    if str(orig.get(c, '')) != str(nuevo.get(c, '')):
-                                        cambios.append({'Campo': c, 'Actual': orig.get(c, ''), 'Propuesto': nuevo.get(c, '')})
-                                if cambios:
-                                    st.table(pd.DataFrame(cambios))
-                            except:
-                                pass
-                    
-                    c1, c2 = st.columns(2)
-                    with c1:
-                        if st.button(f"✅ Aprobar #{pid}", key=f"aprob_{pid}", use_container_width=True):
-                            if aprobar_propuesta(pid):
-                                st.success(f"✅ Propuesta #{pid} aprobada")
-                                st.rerun()
-                    with c2:
-                        if st.button(f"❌ Rechazar #{pid}", key=f"rech_{pid}", use_container_width=True):
-                            if rechazar_propuesta(pid):
-                                st.success(f"❌ Propuesta #{pid} rechazada")
-                                st.rerun()
-                    st.markdown("---")
-        else:
-            st.info("✅ No hay propuestas pendientes.")
     
     # ========== CARGAR DATOS ==========
     if es_admin:
@@ -637,7 +503,7 @@ if st.session_state.logged_in:
         st.warning("⚠️ No hay personal para mostrar")
         st.stop()
     
-    # ========== DETECCIÓN DE COLUMNAS ==========
+    # ========== COLUMNAS ==========
     def find_col(df, posibles):
         for p in posibles:
             if p in df.columns:
@@ -671,23 +537,6 @@ if st.session_state.logged_in:
         mascara = datos_filtrados.astype(str).apply(lambda row: row.str.contains(busqueda, case=False).any(), axis=1)
         datos_filtrados = datos_filtrados[mascara]
         st.info(f"📌 {len(datos_filtrados)} resultados")
-    
-    # ========== GRÁFICOS ==========
-    if es_admin and len(datos_filtrados) > 0:
-        st.markdown("## 📊 Análisis")
-        tab1, tab2 = st.tabs(["📊 Distribución", "⭐ Jerarquías"])
-        with tab1:
-            top_deps = datos_filtrados[dependencia_col].value_counts().head(15)
-            if len(top_deps) > 0:
-                fig = px.bar(x=top_deps.values, y=top_deps.index, orientation='h', title="Personal por dependencia", labels={'x':'Cantidad', 'y':'Dependencia'}, color=top_deps.values, color_continuous_scale='Blues')
-                fig.update_layout(height=500, showlegend=False)
-                st.plotly_chart(fig, use_container_width=True)
-        with tab2:
-            jer_counts = datos_filtrados[jerarquia_col].value_counts()
-            if len(jer_counts) > 0:
-                fig = px.bar(x=jer_counts.values, y=jer_counts.index, orientation='h', title="Personal por jerarquía", labels={'x':'Cantidad', 'y':'Jerarquía'}, color=jer_counts.values, color_continuous_scale='Greens')
-                fig.update_layout(height=500, showlegend=False)
-                st.plotly_chart(fig, use_container_width=True)
     
     # ========== LISTADO ==========
     st.markdown("## 📋 Listado del personal")
@@ -767,13 +616,6 @@ if st.session_state.logged_in:
                 st.markdown("---")
     else:
         st.warning("⚠️ No hay datos con los filtros seleccionados")
-    
-    # ========== EXPORTAR ==========
-    st.markdown("## 📎 Exportar")
-    if st.button("📥 Exportar listado", use_container_width=True):
-        if len(datos_filtrados) > 0:
-            csv = datos_filtrados.to_csv(index=False).encode('utf-8-sig')
-            st.download_button("✅ CSV", csv, f"personal_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.csv", "text/csv")
 
 else:
     # ========== LOGIN ==========

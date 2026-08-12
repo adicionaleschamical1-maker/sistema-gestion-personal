@@ -106,7 +106,6 @@ st.markdown("""
         z-index: 999;
         font-size: 0.75rem;
     }
-    /* Tarjeta carnet */
     .tarjeta-carnet {
         background: linear-gradient(145deg, #ffffff, #f5f7fa);
         border-radius: 16px;
@@ -425,7 +424,6 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
     </div>
     '''
     
-    # --- ESTA ES LA LÍNEA QUE CORRIGE EL ERROR DE VISUALIZACIÓN ---
     st.markdown(html, unsafe_allow_html=True)
 
 # ========== CARGA INICIAL ==========

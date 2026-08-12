@@ -423,7 +423,11 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
     
     # ===== TARJETA CON NUEVO DISEÑO =====
     # Iniciales para el avatar
-    iniciales = ''.join([p[0] for p in nombre.split()[:2]]) if nombre else '??'
+    palabras = nombre.split()
+    if len(palabras) >= 2:
+        iniciales = palabras[0][0] + palabras[1][0]
+    else:
+        iniciales = nombre[:2].upper() if nombre else '??'
     
     st.markdown(f"""
     <div style="background: #ffffff;

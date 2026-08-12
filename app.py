@@ -25,6 +25,19 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# ========== FUNCIÓN PARA LIMPIAR HTML DE LOS DATOS ==========
+def limpiar_html_de_dataframe(df):
+    """
+    Elimina las etiquetas HTML del contenido de un DataFrame 
+    para que no se vean como texto crudo en st.data_editor.
+    """
+    df_limpio = df.copy()
+    for col in df_limpio.columns:
+        df_limpio[col] = df_limpio[col].astype(str).str.replace(r'<[^>]+>', '', regex=True)
+        df_limpio[col] = df_limpio[col].str.replace(r'&nbsp;', ' ', regex=True)
+        df_limpio[col] = df_limpio[col].str.replace(r'&amp;', '&', regex=True)
+    return df_limpio
+
 # ========== CSS ==========
 st.markdown("""
 <style>
@@ -559,8 +572,11 @@ if st.session_state.logged_in:
                     </div>
                     """, unsafe_allow_html=True)
                     
+                    # --- CORRECCIÓN AQUÍ: LIMPIAMOS EL HTML ANTES DE MOSTRARLO ---
+                    grupo_limpio = limpiar_html_de_dataframe(grupo[columnas_a_mostrar])
+                    
                     edited_df = st.data_editor(
-                        grupo[columnas_a_mostrar],
+                        grupo_limpio,  # Usamos la versión limpia
                         use_container_width=True,
                         hide_index=True,
                         num_rows="dynamic",

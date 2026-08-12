@@ -9,6 +9,7 @@ from collections import defaultdict
 import io
 import plotly.express as px
 import plotly.graph_objects as go
+import re
 
 try:
     from openpyxl import load_workbook
@@ -25,17 +26,28 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# ========== FUNCIÓN PARA LIMPIAR HTML DE LOS DATOS ==========
-def limpiar_html_de_dataframe(df):
+# ========== FUNCIÓN PARA LIMPIAR HTML BASURA ==========
+def limpiar_html_profundo(valor):
     """
-    Elimina las etiquetas HTML del contenido de un DataFrame 
-    para que no se vean como texto crudo en st.data_editor.
+    Elimina cualquier rastro de etiquetas HTML y código basura
+    que se haya guardado en las celdas de Google Sheets.
+    """
+    if pd.isna(valor):
+        return ""
+    valor_str = str(valor)
+    # Elimina todo lo que esté entre < y > (etiquetas HTML completas)
+    valor_str = re.sub(r'<[^>]*>', '', valor_str)
+    # Elimina espacios y saltos de línea extra
+    valor_str = re.sub(r'\s+', ' ', valor_str).strip()
+    return valor_str
+
+def limpiar_dataframe_completo(df):
+    """
+    Aplica la limpieza profunda a todas las columnas del DataFrame.
     """
     df_limpio = df.copy()
     for col in df_limpio.columns:
-        df_limpio[col] = df_limpio[col].astype(str).str.replace(r'<[^>]+>', '', regex=True)
-        df_limpio[col] = df_limpio[col].str.replace(r'&nbsp;', ' ', regex=True)
-        df_limpio[col] = df_limpio[col].str.replace(r'&amp;', '&', regex=True)
+        df_limpio[col] = df_limpio[col].apply(limpiar_html_profundo)
     return df_limpio
 
 # ========== CSS ==========
@@ -566,17 +578,18 @@ if st.session_state.logged_in:
                     st.info("👑 **Administrador** - Solo lectura")
                     st.dataframe(grupo[columnas_a_mostrar], use_container_width=True, hide_index=True)
                 else:
+                    # ===== RESTAURAMOS EL MENSAJE Y EL BOTÓN =====
                     st.markdown("""
                     <div style="background: #e8f5e9; padding: 10px 15px; border-radius: 10px; border-left: 5px solid #2ecc71; margin-bottom: 10px; font-size: 0.85rem;">
                         ✏️ Modificá los valores y enviá la propuesta de cambios
                     </div>
                     """, unsafe_allow_html=True)
                     
-                    # --- CORRECCIÓN AQUÍ: LIMPIAMOS EL HTML ANTES DE MOSTRARLO ---
-                    grupo_limpio = limpiar_html_de_dataframe(grupo[columnas_a_mostrar])
+                    # Limpiamos el HTML basura de Google Sheets ANTES de mostrarlo
+                    grupo_limpio = limpiar_dataframe_completo(grupo[columnas_a_mostrar])
                     
                     edited_df = st.data_editor(
-                        grupo_limpio,  # Usamos la versión limpia
+                        grupo_limpio,
                         use_container_width=True,
                         hide_index=True,
                         num_rows="dynamic",

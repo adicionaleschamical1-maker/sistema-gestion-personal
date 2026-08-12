@@ -421,14 +421,14 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
     ========================================
     """
     
-    # ===== TARJETA CON NUEVO DISEÑO =====
-    # Iniciales para el avatar
+    # ===== INICIALES PARA AVATAR =====
     palabras = nombre.split()
     if len(palabras) >= 2:
         iniciales = palabras[0][0] + palabras[1][0]
     else:
         iniciales = nombre[:2].upper() if nombre else '??'
     
+    # ===== TARJETA CON DISEÑO MEJORADO =====
     st.markdown(f"""
     <div style="background: #ffffff;
                 border-radius: 20px;
@@ -438,11 +438,7 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
                 margin: 20px 0;
                 position: relative;
                 overflow: hidden;">
-        
-        <!-- Banda decorativa superior -->
         <div style="position: absolute; top: 0; left: 0; right: 0; height: 6px; background: linear-gradient(90deg, #2ecc71, #3498db, #8e44ad);"></div>
-        
-        <!-- Encabezado con avatar -->
         <div style="display: flex; align-items: center; gap: 20px; margin: 10px 0 25px 0; flex-wrap: wrap; padding-top: 10px;">
             <div style="background: linear-gradient(135deg, #2ecc71, #27ae60);
                         width: 80px;
@@ -470,17 +466,19 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
             </div>
         </div>
         
-        <!-- Grid de datos -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px 40px; margin-top: 20px;">
+        <!-- Grid de datos mejorado -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px 30px; margin-top: 20px;">
     """, unsafe_allow_html=True)
     
-    # Datos principales en dos columnas
+    # Datos principales en dos columnas con fondo alternado
+    contador = 0
     for col in columnas_ordenadas:
         if col in row.index:
             valor = row.get(col, '')
             if valor and str(valor) != 'nan':
                 if col in ['APELLIDO Y NOMBRE', 'DNI', 'JERARQUÍA', 'FUNCIÓN', 'DEPENDENCIA', 'SEXO']:
                     continue
+                contador += 1
                 etiqueta = col.replace('_', ' ').title()
                 # Iconos según el campo
                 icono = "📌"
@@ -500,24 +498,60 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
                     icono = "📋"
                 elif "ANTIGUEDAD" in col:
                     icono = "⏳"
+                elif "OBS" in col:
+                    icono = "📝"
+                
+                # Fondo alternado para mejor legibilidad
+                bg_color = "#f8fafc" if contador % 2 == 0 else "#ffffff"
                 
                 st.markdown(f"""
-                    <div style="display: flex; padding: 8px 0; border-bottom: 1px solid #f7f9fc;">
-                        <span style="font-weight: 600; color: #4a5568; width: 160px; flex-shrink: 0; font-size: 0.85rem;">{icono} {etiqueta}:</span>
-                        <span style="color: #1a202c; font-weight: 500; font-size: 0.9rem;">{valor}</span>
+                    <div style="display: flex; 
+                                padding: 10px 12px; 
+                                background: {bg_color};
+                                border-radius: 8px;
+                                align-items: center;
+                                border-left: 3px solid #2ecc71;">
+                        <span style="font-weight: 600; 
+                                    color: #4a5568; 
+                                    width: 160px; 
+                                    flex-shrink: 0; 
+                                    font-size: 0.8rem;">
+                            {icono} {etiqueta}:
+                        </span>
+                        <span style="color: #1a202c; 
+                                    font-weight: 500; 
+                                    font-size: 0.9rem;">
+                            {valor}
+                        </span>
                     </div>
                 """, unsafe_allow_html=True)
     
     # Columnas extra
-    columnas_extra = [c for c in row.index if c not in columnas_ordenadas and c not in ['N°', 'N', 'Numero', 'Legajo']]
     for col in columnas_extra:
         valor = row.get(col, '')
         if valor and str(valor) != 'nan':
+            contador += 1
             etiqueta = col.replace('_', ' ').title()
+            bg_color = "#f8fafc" if contador % 2 == 0 else "#ffffff"
             st.markdown(f"""
-                <div style="display: flex; padding: 8px 0; border-bottom: 1px solid #f7f9fc;">
-                    <span style="font-weight: 600; color: #4a5568; width: 160px; flex-shrink: 0; font-size: 0.85rem;">📌 {etiqueta}:</span>
-                    <span style="color: #1a202c; font-weight: 500; font-size: 0.9rem;">{valor}</span>
+                <div style="display: flex; 
+                            padding: 10px 12px; 
+                            background: {bg_color};
+                            border-radius: 8px;
+                            align-items: center;
+                            border-left: 3px solid #8e44ad;">
+                    <span style="font-weight: 600; 
+                                color: #4a5568; 
+                                width: 160px; 
+                                flex-shrink: 0; 
+                                font-size: 0.8rem;">
+                        📌 {etiqueta}:
+                    </span>
+                    <span style="color: #1a202c; 
+                                font-weight: 500; 
+                                font-size: 0.9rem;">
+                        {valor}
+                    </span>
                 </div>
             """, unsafe_allow_html=True)
     

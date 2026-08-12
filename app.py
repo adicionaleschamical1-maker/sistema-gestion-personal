@@ -327,6 +327,8 @@ def rechazar_propuesta(id_propuesta):
 
 # ========== FUNCIÓN PARA MOSTRAR TARJETA ==========
 def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
+    """Muestra una tarjeta tipo carnet físico con la información del efectivo"""
+    
     nombre = row.get(nombre_col, 'Sin nombre')
     dni = row.get(dni_col, 'N/A') if dni_col else 'N/A'
     jerarquia = row.get('JERARQUÍA', 'Sin jerarquía')
@@ -334,17 +336,80 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
     dependencia = row.get('DEPENDENCIA', 'Sin dependencia')
     sexo = row.get('SEXO', 'N/A')
     
-    # Texto para descarga
-    texto_descarga = f"""
-    FICHA PERSONAL DEL EFECTIVO
-    Nombre: {nombre}
-    DNI: {dni}
-    Jerarquía: {jerarquia}
-    Función: {funcion}
-    Dependencia: {dependencia}
-    Sexo: {sexo}
-    """
+    # ===== INICIALES PARA AVATAR =====
+    palabras = nombre.split()
+    if len(palabras) >= 2:
+        iniciales = palabras[0][0] + palabras[1][0]
+    else:
+        iniciales = nombre[:2].upper() if nombre else '??'
     
+    # ===== TARJETA TIPO CARNET FÍSICO =====
+    st.markdown(f"""
+    <div style="background: linear-gradient(145deg, #ffffff, #f5f7fa);
+                border-radius: 16px;
+                padding: 25px 30px;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.8);
+                border: 1px solid rgba(255,255,255,0.6);
+                margin: 20px 0;
+                max-width: 650px;
+                position: relative;">
+        
+        <!-- Sello decorativo -->
+        <div style="position: absolute; top: 15px; right: 20px; opacity: 0.08; font-size: 60px;">👮</div>
+        
+        <!-- Banda superior -->
+        <div style="background: linear-gradient(90deg, #1f3a6b, #2c5a8c);
+                    margin: -25px -30px 20px -30px;
+                    padding: 12px 30px;
+                    border-radius: 16px 16px 0 0;
+                    color: white;
+                    font-weight: 600;
+                    font-size: 0.75rem;
+                    letter-spacing: 2px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;">
+            <span>👮 POLICÍA DE LA PROVINCIA</span>
+            <span style="font-size: 0.6rem; opacity: 0.7;">FICHA N° {dni.replace('.', '')[:6]}</span>
+        </div>
+        
+        <!-- Encabezado con avatar -->
+        <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px;">
+            <div style="background: linear-gradient(135deg, #1f3a6b, #2c5a8c);
+                        width: 80px;
+                        height: 80px;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 34px;
+                        font-weight: 700;
+                        color: white;
+                        box-shadow: 0 4px 15px rgba(31,58,107,0.3);
+                        border: 3px solid white;
+                        flex-shrink: 0;">
+                {iniciales}
+            </div>
+            <div style="flex: 1;">
+                <div style="font-size: 1.3rem; font-weight: 700; color: #1f3a6b; line-height: 1.2;">{nombre}</div>
+                <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;">
+                    <span style="background: #2c3e50; color: white; padding: 3px 14px; border-radius: 12px; font-size: 0.6rem; font-weight: 600;">DNI: {dni}</span>
+                    <span style="background: #3498db; color: white; padding: 3px 14px; border-radius: 12px; font-size: 0.6rem; font-weight: 600;">{jerarquia}</span>
+                    <span style="background: #e67e22; color: white; padding: 3px 14px; border-radius: 12px; font-size: 0.6rem; font-weight: 600;">{funcion}</span>
+                    <span style="background: #8e44ad; color: white; padding: 3px 14px; border-radius: 12px; font-size: 0.6rem; font-weight: 600;">{dependencia}</span>
+                    {f'<span style="background: #e74c3c; color: white; padding: 3px 14px; border-radius: 12px; font-size: 0.6rem; font-weight: 600;">{sexo}</span>' if sexo and sexo != 'N/A' else ''}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Línea divisoria con efecto -->
+        <div style="border-top: 2px dashed #dce3ed; margin: 5px 0 15px 0;"></div>
+        
+        <!-- Datos en formato lista vertical -->
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+    """, unsafe_allow_html=True)
+    
+    # ===== DATOS =====
     columnas_ordenadas = [
         'APELLIDO Y NOMBRE', 'DNI', 'JERARQUÍA', 'FUNCIÓN', 'DEPENDENCIA',
         'SEXO', 'MARCA DE ARMA', 'N° DE ARMA', 'OBS', 'SITUACION',
@@ -353,40 +418,6 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
         'DIAS DE LICENCIA DISPONIBLE', 'DIAS DE LICENCIA TOMADA',
         'DIAS DE PROXIMA LICENCIA', 'LEGAJO PERSONAL', 'FECHA DE ULTIMO ASCENSO'
     ]
-    
-    for col in columnas_ordenadas:
-        if col in row.index:
-            valor = row.get(col, '')
-            if valor and str(valor) != 'nan':
-                etiqueta = col.replace('_', ' ').title()
-                texto_descarga += f"{etiqueta}: {valor}\n"
-    
-    # ===== TARJETA =====
-    palabras = nombre.split()
-    iniciales = (palabras[0][0] + palabras[1][0]) if len(palabras) >= 2 else nombre[:2].upper()
-    
-    st.markdown(f"""
-    <div style="background: #ffffff; border-radius: 16px; padding: 20px 25px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #eef2f7; margin: 15px 0; max-width: 650px;">
-        <div style="background: linear-gradient(90deg, #1f3a6b, #2c5a8c); margin: -20px -25px 15px -25px; padding: 10px 25px; border-radius: 16px 16px 0 0; color: white; font-weight: 600; font-size: 0.75rem; display: flex; justify-content: space-between;">
-            <span>👮 POLICÍA DE LA PROVINCIA</span>
-            <span style="font-size: 0.6rem; opacity: 0.7;">FICHA N° {dni.replace('.', '')[:6]}</span>
-        </div>
-        <div style="display: flex; align-items: center; gap: 18px; margin-bottom: 15px;">
-            <div style="background: linear-gradient(135deg, #1f3a6b, #2c5a8c); width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 700; color: white; flex-shrink: 0; border: 3px solid white; box-shadow: 0 4px 15px rgba(31,58,107,0.3);">{iniciales}</div>
-            <div>
-                <div style="font-size: 1.2rem; font-weight: 700; color: #1f3a6b;">{nombre}</div>
-                <div style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px;">
-                    <span style="background: #2c3e50; color: white; padding: 2px 12px; border-radius: 12px; font-size: 0.6rem; font-weight: 600;">DNI: {dni}</span>
-                    <span style="background: #3498db; color: white; padding: 2px 12px; border-radius: 12px; font-size: 0.6rem; font-weight: 600;">{jerarquia}</span>
-                    <span style="background: #e67e22; color: white; padding: 2px 12px; border-radius: 12px; font-size: 0.6rem; font-weight: 600;">{funcion}</span>
-                    <span style="background: #8e44ad; color: white; padding: 2px 12px; border-radius: 12px; font-size: 0.6rem; font-weight: 600;">{dependencia}</span>
-                    {f'<span style="background: #e74c3c; color: white; padding: 2px 12px; border-radius: 12px; font-size: 0.6rem; font-weight: 600;">{sexo}</span>' if sexo and sexo != 'N/A' else ''}
-                </div>
-            </div>
-        </div>
-        <div style="border-top: 2px dashed #eef2f7; margin: 5px 0 12px 0;"></div>
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-    """, unsafe_allow_html=True)
     
     for col in columnas_ordenadas:
         if col in row.index:
@@ -406,9 +437,24 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
                 elif "ANTIGUEDAD" in col: icono = "⏳"
                 
                 st.markdown(f"""
-                    <div style="display: flex; padding: 5px 12px; background: #f8fafc; border-radius: 6px; align-items: center; border-left: 3px solid #2ecc71;">
-                        <span style="font-weight: 600; color: #4a5568; width: 150px; flex-shrink: 0; font-size: 0.75rem;">{icono} {etiqueta}:</span>
-                        <span style="color: #1a202c; font-weight: 500; font-size: 0.82rem;">{valor}</span>
+                    <div style="display: flex; 
+                                padding: 6px 12px; 
+                                background: #f8fafc;
+                                border-radius: 8px;
+                                align-items: center;
+                                border-left: 3px solid #2ecc71;">
+                        <span style="font-weight: 600; 
+                                    color: #4a5568; 
+                                    width: 160px; 
+                                    flex-shrink: 0; 
+                                    font-size: 0.78rem;">
+                            {icono} {etiqueta}:
+                        </span>
+                        <span style="color: #1a202c; 
+                                    font-weight: 500; 
+                                    font-size: 0.85rem;">
+                            {valor}
+                        </span>
                     </div>
                 """, unsafe_allow_html=True)
     
@@ -418,28 +464,37 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
         if valor and str(valor) != 'nan':
             etiqueta = col.replace('_', ' ').title()
             st.markdown(f"""
-                <div style="display: flex; padding: 5px 12px; background: #f8fafc; border-radius: 6px; align-items: center; border-left: 3px solid #8e44ad;">
-                    <span style="font-weight: 600; color: #4a5568; width: 150px; flex-shrink: 0; font-size: 0.75rem;">📌 {etiqueta}:</span>
-                    <span style="color: #1a202c; font-weight: 500; font-size: 0.82rem;">{valor}</span>
+                <div style="display: flex; 
+                            padding: 6px 12px; 
+                            background: #f8fafc;
+                            border-radius: 8px;
+                            align-items: center;
+                            border-left: 3px solid #8e44ad;">
+                    <span style="font-weight: 600; 
+                                color: #4a5568; 
+                                width: 160px; 
+                                flex-shrink: 0; 
+                                font-size: 0.78rem;">
+                        📌 {etiqueta}:
+                    </span>
+                    <span style="color: #1a202c; 
+                                font-weight: 500; 
+                                font-size: 0.85rem;">
+                        {valor}
+                    </span>
                 </div>
             """, unsafe_allow_html=True)
     
     st.markdown(f"""
         </div>
-        <div style="margin-top: 12px; padding-top: 8px; border-top: 1px solid #eef2f7; display: flex; justify-content: space-between; font-size: 0.55rem; color: #a0aec0;">
-            <span>📅 {datetime.datetime.now().strftime('%d/%m/%Y')}</span>
+        
+        <!-- Pie de tarjeta -->
+        <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid #eef2f7; display: flex; justify-content: space-between; font-size: 0.6rem; color: #a0aec0;">
+            <span>📅 Emisión: {datetime.datetime.now().strftime('%d/%m/%Y')}</span>
             <span>🔒 Documento oficial</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
-    
-    # Botones de descarga
-    col_d1, col_d2 = st.columns(2)
-    with col_d1:
-        st.download_button("📄 TXT", texto_descarga, f"ficha_{nombre.replace(' ', '_')}_{dni}.txt", "text/plain", use_container_width=True)
-    with col_d2:
-        df_export = pd.DataFrame([row.to_dict()])
-        st.download_button("📊 CSV", df_export.to_csv(index=False).encode('utf-8-sig'), f"ficha_{nombre.replace(' ', '_')}_{dni}.csv", "text/csv", use_container_width=True)
 
 # ========== CARGA INICIAL ==========
 if 'df_personal' not in st.session_state:

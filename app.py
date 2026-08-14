@@ -430,7 +430,6 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
     </div>
     '''
     
-    # RENDERIZAMOS CON st.markdown (NUNCA USAR st.write)
     st.markdown(html, unsafe_allow_html=True)
 
 
@@ -654,5 +653,4 @@ else:
         - 🔐 Acceso restringido
         - 🔄 Gestión de rotaciones
         - 📎 Exportación de datos
-        - 📊 Resúmenes estadísticos
-        """)
+        - 📊 Resúmenes estadísticos        """)

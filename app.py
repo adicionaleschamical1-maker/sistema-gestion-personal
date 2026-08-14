@@ -9,7 +9,6 @@ from collections import defaultdict
 import io
 import plotly.express as px
 import plotly.graph_objects as go
-import re
 
 try:
     from openpyxl import load_workbook
@@ -612,6 +611,7 @@ if st.session_state.logged_in:
                     label = f"{nombre} (DNI: {dni})" if dni else nombre
                     if st.checkbox(label, key=f"ver_{idx}_{dependencia}"):
                         st.markdown("---")
+                        # CORREGIDO: Ya NO usamos st.write()
                         mostrar_tarjeta_efectivo(row, nombre_col, dni_col)
                         st.markdown("---")
                 st.markdown("---")

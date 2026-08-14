@@ -9,6 +9,7 @@ from collections import defaultdict
 import io
 import plotly.express as px
 import plotly.graph_objects as go
+import re
 
 try:
     from openpyxl import load_workbook
@@ -176,10 +177,20 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# ========== LIMPIEZA DE HTML EN DATOS ==========
+def limpiar_html_celdas(df):
+    """Elimina las etiquetas HTML del DataFrame."""
+    df_limpio = df.copy()
+    for col in df_limpio.columns:
+        df_limpio[col] = df_limpio[col].astype(str).str.replace(r'<[^>]+>', '', regex=True)
+        df_limpio[col] = df_limpio[col].str.replace(r'&nbsp;', ' ', regex=True)
+        df_limpio[col] = df_limpio[col].str.strip()
+    return df_limpio
+
 # ========== FUNCIONES ==========
 @st.cache_data(ttl=60)
 def cargar_datos_hoja():
-    with st.spinner("🔄 Cargando datos..."):
+    with st.spinner("🔄 Cargando y limpiando datos..."):
         try:
             creds = st.secrets["gsheets"]
             gc = gspread.service_account_from_dict(creds)
@@ -195,9 +206,7 @@ def cargar_datos_hoja():
             data = all_values[1:]
             header = [str(col).strip().upper() for col in header]
             df_personal = pd.DataFrame(data, columns=header)
-            for col in df_personal.columns:
-                df_personal[col] = df_personal[col].astype(str).str.strip()
-            df_personal.replace('', pd.NA, inplace=True)
+            df_personal = limpiar_html_celdas(df_personal)
             
             ws_usuarios = sh.worksheet("Usuarios")
             all_users = ws_usuarios.get_all_values()
@@ -208,9 +217,6 @@ def cargar_datos_hoja():
             header_users = [str(col).strip().upper() for col in header_users]
             data_users = all_users[1:]
             df_usuarios = pd.DataFrame(data_users, columns=header_users)
-            for col in df_usuarios.columns:
-                df_usuarios[col] = df_usuarios[col].astype(str).str.strip()
-            df_usuarios.replace('', pd.NA, inplace=True)
             
             try:
                 ws_propuestas = sh.worksheet("Propuestas")
@@ -338,7 +344,7 @@ def rechazar_propuesta(id_propuesta):
     except:
         return False
 
-# ========== TARJETA CORRECTA (BLINDADA) ==========
+# ========== TARJETA (CORRECTA, RENDERIZA VISUALMENTE) ==========
 def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
     nombre = row.get(nombre_col, 'Sin nombre')
     dni = row.get(dni_col, 'N/A') if dni_col else 'N/A'
@@ -424,18 +430,229 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
     </div>
     '''
     
-    # Renderizamos el HTML con st.markdown (NUNCA USAR st.write)
+    # RENDERIZAMOS CON st.markdown (NUNCA USAR st.write)
     st.markdown(html, unsafe_allow_html=True)
 
 
-# 🔍 ========== DIAGNÓSTICO INTEGRADO ==========
-st.title("🔍 DIAGNÓSTICO DEL ERROR (ESTA ES LA CLAVE)")
+# ========== CARGA INICIAL ==========
+if 'df_personal' not in st.session_state:
+    resultado = cargar_datos_hoja()
+    st.session_state.df_personal = resultado[0]
+    st.session_state.df_usuarios = resultado[1]
+    st.session_state.df_propuestas = resultado[2]
 
-st.info("""
-**INSTRUCCIONES:** 
-Si ves el siguiente mensaje en **ROJO**, significa que en tu código (en otra parte del archivo) estás usando `st.write()` o `st.text()` para imprimir el resultado de `mostrar_tarjeta_efectivo`, en lugar de llamarla directamente.
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
 
-**CÓMO ARREGLARLO:**
-Donde tengas algo como:
-```python
-st.write(mostrar_tarjeta_efectivo(row, nombre_col, dni_col))
+# ========== LOGIN ==========
+if st.session_state.logged_in:
+    user = st.session_state.user_data
+    
+    with st.sidebar:
+        st.markdown("### 👤 Panel de Usuario")
+        st.markdown("---")
+        st.markdown(f"**Nombre:** {user['NOMBRE']}")
+        st.markdown(f"**📄 DNI:** {user['DNI']}")
+        st.markdown(f"**🏢 Dependencia:** {user['DEPENDENCIA']}")
+        st.markdown(f"**⭐ Jerarquía:** {user['JERARQUÍA']}")
+        st.markdown("---")
+        if st.button("🔄 REFRESCAR DATOS", use_container_width=True):
+            with st.spinner("Actualizando..."):
+                resultado = cargar_datos_hoja()
+                st.session_state.df_personal = resultado[0]
+                st.session_state.df_usuarios = resultado[1]
+                st.session_state.df_propuestas = resultado[2]
+                st.success("✅ Datos actualizados")
+                time.sleep(1)
+                st.rerun()
+        st.markdown("---")
+        if st.button("🚪 Cerrar Sesión", use_container_width=True):
+            st.session_state.logged_in = False
+            st.rerun()
+    
+    st.title("👮‍♂️ Sistema de Gestión de Personal")
+    st.caption(f"📅 Última actualización: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
+    
+    es_admin = user['FUNCIÓN'].upper() == "ADMINISTRADOR"
+    
+    # ========== PROPUESTAS PENDIENTES ==========
+    if es_admin:
+        if not st.session_state.df_propuestas.empty:
+            estado_col = None
+            for col in st.session_state.df_propuestas.columns:
+                if col.upper() == 'ESTADO':
+                    estado_col = col
+                    break
+            if estado_col:
+                propuestas_pendientes = len(st.session_state.df_propuestas[st.session_state.df_propuestas[estado_col].str.upper() == 'PENDIENTE'])
+            else:
+                propuestas_pendientes = 0
+        else:
+            propuestas_pendientes = 0
+        
+        if propuestas_pendientes > 0:
+            st.warning(f"⚠️ **¡ATENCIÓN!** Hay {propuestas_pendientes} propuestas pendientes", icon="⚠️")
+    
+    # ========== CARGAR DATOS ==========
+    if es_admin:
+        datos_completos = st.session_state.df_personal.copy()
+        st.success("👑 **Modo Administrador**", icon="👑")
+        c1, c2, c3, c4 = st.columns(4)
+        with c1: st.metric("📊 Total", len(datos_completos))
+        with c2: st.metric("🏢 Dependencias", datos_completos['DEPENDENCIA'].nunique() if 'DEPENDENCIA' in datos_completos else 0)
+        with c3: st.metric("⭐ Jerarquías", datos_completos['JERARQUÍA'].nunique() if 'JERARQUÍA' in datos_completos else 0)
+        with c4: st.metric("📋 Funciones", datos_completos['FUNCIÓN'].nunique() if 'FUNCIÓN' in datos_completos else 0)
+    else:
+        datos_completos = st.session_state.df_personal[st.session_state.df_personal['DEPENDENCIA'].astype(str).str.lower() == user['DEPENDENCIA'].lower()].copy()
+        st.info(f"👤 **Modo Usuario** - {user['DEPENDENCIA']}", icon="ℹ️")
+    
+    if len(datos_completos) == 0:
+        st.warning("⚠️ No hay personal para mostrar")
+        st.stop()
+    
+    # ========== COLUMNAS ==========
+    def find_col(df, posibles):
+        for p in posibles:
+            if p in df.columns:
+                return p
+        return None
+    
+    nombre_col = find_col(datos_completos, ['APELLIDO Y NOMBRE', 'NOMBRE', 'NOMBRE COMPLETO'])
+    dni_col = find_col(datos_completos, ['DNI', 'Dni', 'dni'])
+    jerarquia_col = find_col(datos_completos, ['JERARQUÍA', 'Jerarquia', 'JERARQUIA', 'RANGO'])
+    funcion_col = find_col(datos_completos, ['FUNCIÓN', 'Funcion', 'FUNCION', 'CARGO'])
+    dependencia_col = find_col(datos_completos, ['DEPENDENCIA', 'Dependencia', 'DEPARTAMENTO'])
+    
+    if not nombre_col or not jerarquia_col or not funcion_col or not dependencia_col:
+        st.error("❌ Faltan columnas esenciales")
+        st.stop()
+    
+    # ========== FILTROS ==========
+    st.markdown("## 🔎 Filtros")
+    col1, col2, col3 = st.columns(3)
+    with col1: dep_filter = st.multiselect("🏢 Dependencia", sorted(datos_completos[dependencia_col].dropna().unique()))
+    with col2: jer_filter = st.multiselect("⭐ Jerarquía", sorted(datos_completos[jerarquia_col].dropna().unique()))
+    with col3: fun_filter = st.multiselect("📋 Función", sorted(datos_completos[funcion_col].dropna().unique()))
+    
+    datos_filtrados = datos_completos.copy()
+    if dep_filter: datos_filtrados = datos_filtrados[datos_filtrados[dependencia_col].isin(dep_filter)]
+    if jer_filter: datos_filtrados = datos_filtrados[datos_filtrados[jerarquia_col].isin(jer_filter)]
+    if fun_filter: datos_filtrados = datos_filtrados[datos_filtrados[funcion_col].isin(fun_filter)]
+    
+    busqueda = st.text_input("🔍 Búsqueda", placeholder="Nombre, DNI...")
+    if busqueda:
+        mascara = datos_filtrados.astype(str).apply(lambda row: row.str.contains(busqueda, case=False).any(), axis=1)
+        datos_filtrados = datos_filtrados[mascara]
+        st.info(f"📌 {len(datos_filtrados)} resultados")
+    
+    # ========== LISTADO ==========
+    st.markdown("## 📋 Listado del personal")
+    st.caption(f"Total: {len(datos_filtrados)}")
+    
+    if len(datos_filtrados) > 0:
+        columnas_excluir = ['N°', 'N', 'Numero', 'Legajo']
+        columnas_a_mostrar = [c for c in datos_filtrados.columns if c not in columnas_excluir]
+        
+        for dependencia, grupo in datos_filtrados.groupby(dependencia_col):
+            with st.container():
+                st.markdown(f"### 🏢 {dependencia}")
+                
+                if es_admin:
+                    st.info("👑 **Administrador** - Solo lectura")
+                    st.dataframe(grupo[columnas_a_mostrar], use_container_width=True, hide_index=True)
+                else:
+                    st.markdown("""
+                    <div style="background: #e8f5e9; padding: 10px 15px; border-radius: 10px; border-left: 5px solid #2ecc71; margin-bottom: 10px; font-size: 0.85rem;">
+                        ✏️ Modificá los valores y enviá la propuesta de cambios
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    edited_df = st.data_editor(
+                        grupo[columnas_a_mostrar],
+                        use_container_width=True,
+                        hide_index=True,
+                        num_rows="dynamic",
+                        key=f"editor_{dependencia}"
+                    )
+                    
+                    if st.button(f"📨 Enviar propuesta para {dependencia}", key=f"propuesta_{dependencia}", type="primary"):
+                        cambios = False
+                        if len(edited_df) > len(grupo):
+                            for _, row in edited_df.iloc[len(grupo):].iterrows():
+                                if guardar_propuesta(user['DNI'], user['NOMBRE'], dependencia, "AGREGAR", {}, row.to_dict()):
+                                    cambios = True
+                        for i in range(min(len(grupo), len(edited_df))):
+                            if not grupo.iloc[i][columnas_a_mostrar].equals(edited_df.iloc[i][columnas_a_mostrar]):
+                                orig = {}
+                                new = {}
+                                for col in columnas_a_mostrar:
+                                    if str(grupo.iloc[i][col]) != str(edited_df.iloc[i][col]):
+                                        orig[col] = grupo.iloc[i][col]
+                                        new[col] = edited_df.iloc[i][col]
+                                if orig and guardar_propuesta(user['DNI'], user['NOMBRE'], dependencia, "MODIFICAR", orig, new):
+                                    cambios = True
+                        if cambios:
+                            st.success("✅ Propuesta enviada. El administrador la revisará.")
+                            st.balloons()
+                            time.sleep(2)
+                            st.rerun()
+                        else:
+                            st.info("ℹ️ No se detectaron cambios")
+                
+                st.markdown("---")
+        
+        # ===== TARJETAS =====
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #8e44ad 0%, #6c3483 100%); padding: 12px 20px; border-radius: 10px; margin: 20px 0 15px 0; color: white; font-weight: 600; font-size: 1.2rem;">
+            👤 VER FICHA PERSONAL
+        </div>
+        """, unsafe_allow_html=True)
+        
+        with st.expander("📋 Seleccioná un efectivo", expanded=False):
+            st.markdown("Marcá el checkbox para ver la ficha completa")
+            for dependencia, grupo in datos_filtrados.groupby(dependencia_col):
+                st.markdown(f"**🏢 {dependencia}**")
+                for idx, row in grupo.iterrows():
+                    nombre = row.get(nombre_col, 'Sin nombre')
+                    dni = row.get(dni_col, '')
+                    label = f"{nombre} (DNI: {dni})" if dni else nombre
+                    if st.checkbox(label, key=f"ver_{idx}_{dependencia}"):
+                        st.markdown("---")
+                        mostrar_tarjeta_efectivo(row, nombre_col, dni_col)
+                        st.markdown("---")
+                st.markdown("---")
+    else:
+        st.warning("⚠️ No hay datos con los filtros seleccionados")
+
+else:
+    # ========== LOGIN ==========
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        st.title("👮‍♂️ Sistema de Gestión de Personal")
+        st.markdown("### Iniciar Sesión")
+        dni_input = st.text_input("📄 DNI", placeholder="Ingrese su DNI", key="login_dni")
+        clave_input = st.text_input("🔒 Clave", type="password", placeholder="Ingrese su contraseña", key="login_clave")
+        if st.button("🚪 Ingresar", type="primary", use_container_width=True, key="login_button"):
+            if dni_input and clave_input:
+                df_usuarios = st.session_state.df_usuarios
+                usuario = df_usuarios[
+                    (df_usuarios['DNI'].astype(str).str.lower() == dni_input.lower()) &
+                    (df_usuarios['CLAVE'].astype(str).str.lower() == clave_input.lower())
+                ]
+                if not usuario.empty:
+                    st.session_state.logged_in = True
+                    st.session_state.user_data = usuario.iloc[0]
+                    st.rerun()
+                else:
+                    st.error("❌ DNI o Clave incorrectos")
+            else:
+                st.warning("⚠️ Complete ambos campos")
+    with col2:
+        st.markdown("### ℹ️ Información")
+        st.info("""
+        **Sistema de Gestión de Personal**
+        - 🔐 Acceso restringido
+        - 🔄 Gestión de rotaciones
+        - 📎 Exportación de datos
+        - 📊 Resúmenes estadísticos
+        """)

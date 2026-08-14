@@ -9,6 +9,7 @@ from collections import defaultdict
 import io
 import plotly.express as px
 import plotly.graph_objects as go
+import re
 
 try:
     from openpyxl import load_workbook
@@ -106,6 +107,7 @@ st.markdown("""
         z-index: 999;
         font-size: 0.75rem;
     }
+    /* Tarjeta carnet */
     .tarjeta-carnet {
         background: linear-gradient(145deg, #ffffff, #f5f7fa);
         border-radius: 16px;
@@ -176,10 +178,25 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# =================================================================
+# 🧹 NUEVA FUNCIÓN DE LIMPIEZA DE HTML EN DATOS
+# =================================================================
+def limpiar_html_celdas(df):
+    """
+    Elimina todas las etiquetas HTML (como <div class='dato'>) de todas
+    las celdas del DataFrame, dejando solo el texto limpio.
+    """
+    df_limpio = df.copy()
+    for col in df_limpio.columns:
+        df_limpio[col] = df_limpio[col].astype(str).str.replace(r'<[^>]+>', '', regex=True)
+        df_limpio[col] = df_limpio[col].str.replace(r'&nbsp;', ' ', regex=True)
+        df_limpio[col] = df_limpio[col].str.strip()
+    return df_limpio
+
 # ========== FUNCIONES ==========
 @st.cache_data(ttl=60)
 def cargar_datos_hoja():
-    with st.spinner("🔄 Cargando datos..."):
+    with st.spinner("🔄 Cargando y limpiando datos..."):
         try:
             creds = st.secrets["gsheets"]
             gc = gspread.service_account_from_dict(creds)
@@ -195,6 +212,10 @@ def cargar_datos_hoja():
             data = all_values[1:]
             header = [str(col).strip().upper() for col in header]
             df_personal = pd.DataFrame(data, columns=header)
+            
+            # Limpiamos el HTML de todas las columnas al cargar
+            df_personal = limpiar_html_celdas(df_personal)
+            
             for col in df_personal.columns:
                 df_personal[col] = df_personal[col].astype(str).str.strip()
             df_personal.replace('', pd.NA, inplace=True)
@@ -338,7 +359,7 @@ def rechazar_propuesta(id_propuesta):
     except:
         return False
 
-# ========== TARJETA ÚNICA Y CORRECTA ==========
+# ========== TARJETA ==========
 def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
     nombre = row.get(nombre_col, 'Sin nombre')
     dni = row.get(dni_col, 'N/A') if dni_col else 'N/A'
@@ -424,7 +445,6 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
     </div>
     '''
     
-    # LA LÍNEA QUE CORRIGE EL ERROR (NUNCA USAR st.write(html))
     st.markdown(html, unsafe_allow_html=True)
 
 # ========== CARGA INICIAL ==========

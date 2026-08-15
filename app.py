@@ -338,7 +338,7 @@ def rechazar_propuesta(id_propuesta):
     except:
         return False
 
-# ========== TARJETA (CORREGIDA: SIN DUPLICADOS) ==========
+# ========== TARJETA (REESCRITA DESDE CERO) ==========
 def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
     nombre = row.get(nombre_col, 'Sin nombre')
     dni = row.get(dni_col, 'N/A') if dni_col else 'N/A'
@@ -350,6 +350,7 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
     palabras = nombre.split()
     iniciales = (palabras[0][0] + palabras[1][0]) if len(palabras) >= 2 else nombre[:2].upper()
     
+    # CONSTRUIMOS EL HTML DE LA PARTE VISUAL (AVATAR, NOMBRE, ETIQUETAS)
     html = f'''
     <div class="tarjeta-carnet">
         <div class="banda-superior">
@@ -373,6 +374,7 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
         <div>
     '''
     
+    # CONSTRUIMOS EL HTML DE LOS DATOS DENTRO DE LA MISMA VARIABLE
     columnas = [
         'MARCA DE ARMA', 'N° DE ARMA', 'OBS', 'SITUACION',
         'GRUPO SANGUINEO', 'N° DE TELEFONO', 'DOMICILIO REAL (DONDE VIVE)',

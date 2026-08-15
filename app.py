@@ -177,8 +177,11 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ========== LIMPIEZA DE SEGURIDAD EN DATOS ==========
-def limpiar_html_seguro(df):
+# ========== FUNCIÓN DE LIMPIEZA ==========
+def limpiar_html_celdas(df):
+    """
+    Elimina todas las etiquetas HTML de las celdas del DataFrame.
+    """
     df_limpio = df.copy()
     for col in df_limpio.columns:
         df_limpio[col] = df_limpio[col].astype(str).str.replace(r'<[^>]+>', '', regex=True)
@@ -188,7 +191,7 @@ def limpiar_html_seguro(df):
 # ========== FUNCIONES ==========
 @st.cache_data(ttl=60)
 def cargar_datos_hoja():
-    with st.spinner("🔄 Cargando datos..."):
+    with st.spinner("🔄 Cargando y limpiando datos..."):
         try:
             creds = st.secrets["gsheets"]
             gc = gspread.service_account_from_dict(creds)
@@ -204,7 +207,13 @@ def cargar_datos_hoja():
             data = all_values[1:]
             header = [str(col).strip().upper() for col in header]
             df_personal = pd.DataFrame(data, columns=header)
-            df_personal = limpiar_html_seguro(df_personal)
+            
+            # APLICAMOS LA LIMPIEZA AQUÍ
+            df_personal = limpiar_html_celdas(df_personal)
+            
+            for col in df_personal.columns:
+                df_personal[col] = df_personal[col].astype(str).str.strip()
+            df_personal.replace('', pd.NA, inplace=True)
             
             ws_usuarios = sh.worksheet("Usuarios")
             all_users = ws_usuarios.get_all_values()
@@ -215,6 +224,9 @@ def cargar_datos_hoja():
             header_users = [str(col).strip().upper() for col in header_users]
             data_users = all_users[1:]
             df_usuarios = pd.DataFrame(data_users, columns=header_users)
+            for col in df_usuarios.columns:
+                df_usuarios[col] = df_usuarios[col].astype(str).str.strip()
+            df_usuarios.replace('', pd.NA, inplace=True)
             
             try:
                 ws_propuestas = sh.worksheet("Propuestas")
@@ -342,7 +354,7 @@ def rechazar_propuesta(id_propuesta):
     except:
         return False
 
-# ========== TARJETA ÚNICA Y CORRECTA ==========
+# ========== TARJETA ==========
 def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
     nombre = row.get(nombre_col, 'Sin nombre')
     dni = row.get(dni_col, 'N/A') if dni_col else 'N/A'

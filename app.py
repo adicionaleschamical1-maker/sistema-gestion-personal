@@ -177,22 +177,18 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ========== FUNCIÓN DE LIMPIEZA PROFUNDA ==========
-def limpiar_html_total(df):
-    """
-    Elimina absolutamente todas las etiquetas HTML y espacios extra de las celdas.
-    """
+# ========== LIMPIEZA DE SEGURIDAD EN DATOS ==========
+def limpiar_html_seguro(df):
     df_limpio = df.copy()
     for col in df_limpio.columns:
         df_limpio[col] = df_limpio[col].astype(str).str.replace(r'<[^>]+>', '', regex=True)
-        df_limpio[col] = df_limpio[col].str.replace(r'\s+', ' ', regex=True)
         df_limpio[col] = df_limpio[col].str.strip()
     return df_limpio
 
-# ========== FUNCIONES ==========
-@st.cache_data(ttl=60)
+# ========== FUNCIONES (SIN CACHÉ) ==========
+# ELIMINÉ @st.cache_data PARA FORZAR LA LECTURA REAL DE GOOGLE SHEETS
 def cargar_datos_hoja():
-    with st.spinner("🔄 Cargando datos..."):
+    with st.spinner("🔄 Cargando datos desde Google Sheets..."):
         try:
             creds = st.secrets["gsheets"]
             gc = gspread.service_account_from_dict(creds)
@@ -208,9 +204,7 @@ def cargar_datos_hoja():
             data = all_values[1:]
             header = [str(col).strip().upper() for col in header]
             df_personal = pd.DataFrame(data, columns=header)
-            
-            # APLICAMOS LA LIMPIEZA PROFUNDA AQUÍ
-            df_personal = limpiar_html_total(df_personal)
+            df_personal = limpiar_html_seguro(df_personal)
             
             ws_usuarios = sh.worksheet("Usuarios")
             all_users = ws_usuarios.get_all_values()
@@ -238,7 +232,7 @@ def cargar_datos_hoja():
             
             return df_personal, df_usuarios, df_propuestas
         except Exception as e:
-            st.error(f"Error: {e}")
+            st.error(f"Error al conectar con Google Sheets: {e}")
             st.stop()
 
 def get_new_connection():
@@ -348,7 +342,7 @@ def rechazar_propuesta(id_propuesta):
     except:
         return False
 
-# ========== TARJETA ==========
+# ========== TARJETA (VERSIÓN ORIGINAL RESTAURADA) ==========
 def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
     nombre = row.get(nombre_col, 'Sin nombre')
     dni = row.get(dni_col, 'N/A') if dni_col else 'N/A'
@@ -604,7 +598,7 @@ if st.session_state.logged_in:
                 
                 st.markdown("---")
         
-        # ===== TARJETAS =====
+        # ===== TARJETAS (UBICACIÓN CORRECTA) =====
         st.markdown("""
         <div style="background: linear-gradient(135deg, #8e44ad 0%, #6c3483 100%); padding: 12px 20px; border-radius: 10px; margin: 20px 0 15px 0; color: white; font-weight: 600; font-size: 1.2rem;">
             👤 VER FICHA PERSONAL

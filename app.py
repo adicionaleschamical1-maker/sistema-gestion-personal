@@ -20,10 +20,9 @@ except ImportError:
     OPENPYXL_AVAILABLE = False
 
 st.set_page_config(
-    page_title="Sistema de Gestión de Personal",
+    page_title="🔍 DIAGNÓSTICO EN VIVO",
     layout="wide",
-    page_icon="👮‍♂️",
-    initial_sidebar_state="collapsed"
+    page_icon="🔍"
 )
 
 # ========== CSS ==========
@@ -177,18 +176,10 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ========== LIMPIEZA DE SEGURIDAD EN DATOS ==========
-def limpiar_html_seguro(df):
-    df_limpio = df.copy()
-    for col in df_limpio.columns:
-        df_limpio[col] = df_limpio[col].astype(str).str.replace(r'<[^>]+>', '', regex=True)
-        df_limpio[col] = df_limpio[col].str.strip()
-    return df_limpio
-
-# ========== FUNCIONES (SIN CACHÉ) ==========
-# ELIMINÉ @st.cache_data PARA FORZAR LA LECTURA REAL DE GOOGLE SHEETS
+# ========== FUNCIONES ==========
+@st.cache_data(ttl=60)
 def cargar_datos_hoja():
-    with st.spinner("🔄 Cargando datos desde Google Sheets..."):
+    with st.spinner("🔄 Cargando datos..."):
         try:
             creds = st.secrets["gsheets"]
             gc = gspread.service_account_from_dict(creds)
@@ -204,7 +195,9 @@ def cargar_datos_hoja():
             data = all_values[1:]
             header = [str(col).strip().upper() for col in header]
             df_personal = pd.DataFrame(data, columns=header)
-            df_personal = limpiar_html_seguro(df_personal)
+            for col in df_personal.columns:
+                df_personal[col] = df_personal[col].astype(str).str.strip()
+            df_personal.replace('', pd.NA, inplace=True)
             
             ws_usuarios = sh.worksheet("Usuarios")
             all_users = ws_usuarios.get_all_values()
@@ -215,6 +208,9 @@ def cargar_datos_hoja():
             header_users = [str(col).strip().upper() for col in header_users]
             data_users = all_users[1:]
             df_usuarios = pd.DataFrame(data_users, columns=header_users)
+            for col in df_usuarios.columns:
+                df_usuarios[col] = df_usuarios[col].astype(str).str.strip()
+            df_usuarios.replace('', pd.NA, inplace=True)
             
             try:
                 ws_propuestas = sh.worksheet("Propuestas")
@@ -232,7 +228,7 @@ def cargar_datos_hoja():
             
             return df_personal, df_usuarios, df_propuestas
         except Exception as e:
-            st.error(f"Error al conectar con Google Sheets: {e}")
+            st.error(f"Error: {e}")
             st.stop()
 
 def get_new_connection():
@@ -342,8 +338,16 @@ def rechazar_propuesta(id_propuesta):
     except:
         return False
 
-# ========== TARJETA (VERSIÓN ORIGINAL RESTAURADA) ==========
+# ========== DIAGNÓSTICO: LA FUNCIÓN CON UN "RADAR" ==========
 def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
+    
+    # --- DIAGNÓSTICO: Imprimimos dónde estamos ---
+    st.error(f"🔴 **¡LA FUNCIÓN SE ESTÁ EJECUTANDO!** Llamada desde la dependencia: {row.get('DEPENDENCIA', 'Sin dependencia')}")
+    st.write("Datos que está leyendo la función (primera fila):")
+    st.json(row.to_dict())
+    st.write("--- Fin del diagnóstico ---")
+    # ---------------------------------------------
+
     nombre = row.get(nombre_col, 'Sin nombre')
     dni = row.get(dni_col, 'N/A') if dni_col else 'N/A'
     jerarquia = row.get('JERARQUÍA', 'Sin jerarquía')
@@ -598,7 +602,7 @@ if st.session_state.logged_in:
                 
                 st.markdown("---")
         
-        # ===== TARJETAS (UBICACIÓN CORRECTA) =====
+        # ===== TARJETAS =====
         st.markdown("""
         <div style="background: linear-gradient(135deg, #8e44ad 0%, #6c3483 100%); padding: 12px 20px; border-radius: 10px; margin: 20px 0 15px 0; color: white; font-weight: 600; font-size: 1.2rem;">
             👤 VER FICHA PERSONAL

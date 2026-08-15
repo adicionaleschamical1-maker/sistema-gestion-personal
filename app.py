@@ -9,7 +9,6 @@ from collections import defaultdict
 import io
 import plotly.express as px
 import plotly.graph_objects as go
-import re
 
 try:
     from openpyxl import load_workbook
@@ -20,9 +19,10 @@ except ImportError:
     OPENPYXL_AVAILABLE = False
 
 st.set_page_config(
-    page_title="🔍 DIAGNÓSTICO EN VIVO",
+    page_title="Sistema de Gestión de Personal",
     layout="wide",
-    page_icon="🔍"
+    page_icon="👮‍♂️",
+    initial_sidebar_state="collapsed"
 )
 
 # ========== CSS ==========
@@ -338,16 +338,8 @@ def rechazar_propuesta(id_propuesta):
     except:
         return False
 
-# ========== DIAGNÓSTICO: LA FUNCIÓN CON UN "RADAR" ==========
+# ========== TARJETA (CORREGIDA: SIN DUPLICADOS) ==========
 def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
-    
-    # --- DIAGNÓSTICO: Imprimimos dónde estamos ---
-    st.error(f"🔴 **¡LA FUNCIÓN SE ESTÁ EJECUTANDO!** Llamada desde la dependencia: {row.get('DEPENDENCIA', 'Sin dependencia')}")
-    st.write("Datos que está leyendo la función (primera fila):")
-    st.json(row.to_dict())
-    st.write("--- Fin del diagnóstico ---")
-    # ---------------------------------------------
-
     nombre = row.get(nombre_col, 'Sin nombre')
     dni = row.get(dni_col, 'N/A') if dni_col else 'N/A'
     jerarquia = row.get('JERARQUÍA', 'Sin jerarquía')

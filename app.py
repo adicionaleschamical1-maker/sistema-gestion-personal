@@ -594,7 +594,7 @@ if st.session_state.logged_in:
                 
                 st.markdown("---")
                 
-                # ===== TARJETAS (CORREGIDO: AHORA ESTÁ DENTRO DEL BUCLE) =====
+                # ===== TARJETAS =====
                 st.markdown("""
                 <div style="background: linear-gradient(135deg, #8e44ad 0%, #6c3483 100%); padding: 12px 20px; border-radius: 10px; margin: 20px 0 15px 0; color: white; font-weight: 600; font-size: 1.2rem;">
                     👤 VER FICHA PERSONAL
@@ -609,6 +609,7 @@ if st.session_state.logged_in:
                         label = f"{nombre} (DNI: {dni})" if dni else nombre
                         if st.checkbox(label, key=f"ver_{idx}_{dependencia}"):
                             st.markdown("---")
+                            # CORRECCIÓN FINAL: LLAMAMOS A LA FUNCIÓN DIRECTAMENTE, SIN st.write()
                             mostrar_tarjeta_efectivo(row, nombre_col, dni_col)
                             st.markdown("---")
                     st.markdown("---")

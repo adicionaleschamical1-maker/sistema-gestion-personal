@@ -349,6 +349,18 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
     
     palabras = nombre.split()
     iniciales = (palabras[0][0] + palabras[1][0]) if len(palabras) >= 2 else nombre[:2].upper()
+
+    # ==============================================================
+    # 🔍 DIAGNÓSTICO DE DATOS (ESTA ES LA CLAVE PARA SABER QUÉ PASA)
+    # ==============================================================
+    st.markdown("### 🔍 DIAGNÓSTICO: ¿Cómo llegan los datos a la función?")
+    st.write("Estos son los datos crudos que recibió la función:")
+    
+    # Convertimos la fila a diccionario para verla en pantalla
+    st.json(row.to_dict())
+    
+    st.write("--- Fin del diagnóstico ---")
+    # ==============================================================
     
     # CONSTRUIMOS EL HTML DE LA PARTE VISUAL (AVATAR, NOMBRE, ETIQUETAS)
     html = f'''

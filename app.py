@@ -338,7 +338,7 @@ def rechazar_propuesta(id_propuesta):
     except:
         return False
 
-# ========== TARJETA (REESCRITA DESDE CERO) ==========
+# ========== TARJETA ÚNICA (SIN DUPLICADOS) ==========
 def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
     nombre = row.get(nombre_col, 'Sin nombre')
     dni = row.get(dni_col, 'N/A') if dni_col else 'N/A'
@@ -349,20 +349,7 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
     
     palabras = nombre.split()
     iniciales = (palabras[0][0] + palabras[1][0]) if len(palabras) >= 2 else nombre[:2].upper()
-
-    # ==============================================================
-    # 🔍 DIAGNÓSTICO DE DATOS (ESTA ES LA CLAVE PARA SABER QUÉ PASA)
-    # ==============================================================
-    st.markdown("### 🔍 DIAGNÓSTICO: ¿Cómo llegan los datos a la función?")
-    st.write("Estos son los datos crudos que recibió la función:")
     
-    # Convertimos la fila a diccionario para verla en pantalla
-    st.json(row.to_dict())
-    
-    st.write("--- Fin del diagnóstico ---")
-    # ==============================================================
-    
-    # CONSTRUIMOS EL HTML DE LA PARTE VISUAL (AVATAR, NOMBRE, ETIQUETAS)
     html = f'''
     <div class="tarjeta-carnet">
         <div class="banda-superior">
@@ -386,7 +373,6 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
         <div>
     '''
     
-    # CONSTRUIMOS EL HTML DE LOS DATOS DENTRO DE LA MISMA VARIABLE
     columnas = [
         'MARCA DE ARMA', 'N° DE ARMA', 'OBS', 'SITUACION',
         'GRUPO SANGUINEO', 'N° DE TELEFONO', 'DOMICILIO REAL (DONDE VIVE)',

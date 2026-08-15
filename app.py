@@ -338,7 +338,7 @@ def rechazar_propuesta(id_propuesta):
     except:
         return False
 
-# ========== TARJETA (CORRECTA, RENDERIZA VISUALMENTE) ==========
+# ========== TARJETA ==========
 def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
     nombre = row.get(nombre_col, 'Sin nombre')
     dni = row.get(dni_col, 'N/A') if dni_col else 'N/A'
@@ -593,28 +593,25 @@ if st.session_state.logged_in:
                             st.info("ℹ️ No se detectaron cambios")
                 
                 st.markdown("---")
-        
-        # ===== TARJETAS =====
-        st.markdown("""
-        <div style="background: linear-gradient(135deg, #8e44ad 0%, #6c3483 100%); padding: 12px 20px; border-radius: 10px; margin: 20px 0 15px 0; color: white; font-weight: 600; font-size: 1.2rem;">
-            👤 VER FICHA PERSONAL
-        </div>
-        """, unsafe_allow_html=True)
-        
-        with st.expander("📋 Seleccioná un efectivo", expanded=False):
-            st.markdown("Marcá el checkbox para ver la ficha completa")
-            for dependencia, grupo in datos_filtrados.groupby(dependencia_col):
-                st.markdown(f"**🏢 {dependencia}**")
-                for idx, row in grupo.iterrows():
-                    nombre = row.get(nombre_col, 'Sin nombre')
-                    dni = row.get(dni_col, '')
-                    label = f"{nombre} (DNI: {dni})" if dni else nombre
-                    if st.checkbox(label, key=f"ver_{idx}_{dependencia}"):
-                        st.markdown("---")
-                        # CORREGIDO: Ya NO usamos st.write()
-                        mostrar_tarjeta_efectivo(row, nombre_col, dni_col)
-                        st.markdown("---")
-                st.markdown("---")
+                
+                # ===== TARJETAS (CORREGIDO: AHORA ESTÁ DENTRO DEL BUCLE) =====
+                st.markdown("""
+                <div style="background: linear-gradient(135deg, #8e44ad 0%, #6c3483 100%); padding: 12px 20px; border-radius: 10px; margin: 20px 0 15px 0; color: white; font-weight: 600; font-size: 1.2rem;">
+                    👤 VER FICHA PERSONAL
+                </div>
+                """, unsafe_allow_html=True)
+                
+                with st.expander("📋 Seleccioná un efectivo", expanded=False):
+                    st.markdown("Marcá el checkbox para ver la ficha completa")
+                    for idx, row in grupo.iterrows():
+                        nombre = row.get(nombre_col, 'Sin nombre')
+                        dni = row.get(dni_col, '')
+                        label = f"{nombre} (DNI: {dni})" if dni else nombre
+                        if st.checkbox(label, key=f"ver_{idx}_{dependencia}"):
+                            st.markdown("---")
+                            mostrar_tarjeta_efectivo(row, nombre_col, dni_col)
+                            st.markdown("---")
+                    st.markdown("---")
     else:
         st.warning("⚠️ No hay datos con los filtros seleccionados")
 

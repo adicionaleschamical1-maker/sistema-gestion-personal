@@ -177,11 +177,15 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ========== FUNCIÓN DE LIMPIEZA DE SEGURIDAD ==========
-def limpiar_html_celdas(df):
+# ========== FUNCIÓN DE LIMPIEZA PROFUNDA ==========
+def limpiar_html_total(df):
+    """
+    Elimina absolutamente todas las etiquetas HTML y espacios extra de las celdas.
+    """
     df_limpio = df.copy()
     for col in df_limpio.columns:
         df_limpio[col] = df_limpio[col].astype(str).str.replace(r'<[^>]+>', '', regex=True)
+        df_limpio[col] = df_limpio[col].str.replace(r'\s+', ' ', regex=True)
         df_limpio[col] = df_limpio[col].str.strip()
     return df_limpio
 
@@ -204,7 +208,7 @@ def cargar_datos_hoja():
             data = all_values[1:]
             header = [str(col).strip().upper() for col in header]
             df_personal = pd.DataFrame(data, columns=header)
-            df_personal = limpiar_html_celdas(df_personal)
+            df_personal = limpiar_html_total(df_personal)
             
             ws_usuarios = sh.worksheet("Usuarios")
             all_users = ws_usuarios.get_all_values()
@@ -342,7 +346,7 @@ def rechazar_propuesta(id_propuesta):
     except:
         return False
 
-# ========== TARJETA (VERSIÓN FINAL Y LIMPIA) ==========
+# ========== TARJETA ==========
 def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
     nombre = row.get(nombre_col, 'Sin nombre')
     dni = row.get(dni_col, 'N/A') if dni_col else 'N/A'
@@ -598,7 +602,7 @@ if st.session_state.logged_in:
                 
                 st.markdown("---")
         
-        # ===== TARJETAS (SIN DUPLICADOS Y SIN st.write) =====
+        # ===== TARJETAS =====
         st.markdown("""
         <div style="background: linear-gradient(135deg, #8e44ad 0%, #6c3483 100%); padding: 12px 20px; border-radius: 10px; margin: 20px 0 15px 0; color: white; font-weight: 600; font-size: 1.2rem;">
             👤 VER FICHA PERSONAL

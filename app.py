@@ -304,7 +304,7 @@ def rechazar_propuesta(id_propuesta):
     except:
         return False
 
-# ========== TARJETA NUEVA (DISEÑO MEJORADO) ==========
+# ========== TARJETA NUEVA (DISEÑO MEJORADO + DESCARGA HTML) ==========
 def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
     nombre = row.get(nombre_col, 'Sin nombre')
     dni = row.get(dni_col, 'N/A') if dni_col else 'N/A'
@@ -319,7 +319,6 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
     with st.container():
         st.markdown("---")
         
-        # Encabezado de la ficha
         col_avatar, col_titulo = st.columns([1, 5])
         with col_avatar:
             st.markdown(f"""
@@ -328,7 +327,6 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
         with col_titulo:
             st.markdown(f"### 👤 {nombre}")
             
-            # Etiquetas de colores
             badge_html = f"""
             <span class="badge" style="background:#2c3e50;">📄 DNI: {dni}</span>
             <span class="badge" style="background:#3498db;">⭐ {jerarquia}</span>
@@ -340,7 +338,6 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
         
         st.markdown("---")
 
-        # Contenedor de datos en dos columnas
         columnas = [
             'MARCA DE ARMA', 'N° DE ARMA', 'OBS', 'SITUACION',
             'GRUPO SANGUINEO', 'N° DE TELEFONO', 'DOMICILIO REAL (DONDE VIVE)',
@@ -351,7 +348,6 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
         
         col1, col2 = st.columns(2)
         
-        # Repartimos los datos en dos columnas
         for i, col in enumerate(columnas):
             if col in row.index:
                 valor = row.get(col, '')
@@ -366,6 +362,201 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
         st.markdown("---")
         st.caption(f"📅 Emisión: {datetime.datetime.now().strftime('%d/%m/%Y')} · 🔒 Documento oficial")
         st.markdown("---")
+
+        # =============================================
+        # 📥 DESCARGA DE TARJETA COMO HTML (IMAGEN)
+        # =============================================
+        # Generamos el HTML completo con el CSS incrustado
+        html_descarga = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ficha Personal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {{
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f6f9;
+            display: flex;
+            justify-content: center;
+            padding: 40px;
+            margin: 0;
+        }}
+        .tarjeta {{
+            background: white;
+            max-width: 650px;
+            width: 100%;
+            border-radius: 16px;
+            padding: 25px 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+            border: 1px solid #eef2f7;
+        }}
+        .banda {{
+            background: linear-gradient(90deg, #1f3a6b, #2c5a8c);
+            margin: -25px -30px 20px -30px;
+            padding: 12px 30px;
+            border-radius: 16px 16px 0 0;
+            color: white;
+            font-weight: 600;
+            font-size: 0.75rem;
+            letter-spacing: 2px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }}
+        .header {{
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }}
+        .avatar {{
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #1f3a6b, #2c5a8c);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 34px;
+            font-weight: 700;
+            color: white;
+            flex-shrink: 0;
+            box-shadow: 0 4px 15px rgba(31,58,107,0.3);
+            border: 3px solid white;
+        }}
+        .nombre {{
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #1f3a6b;
+        }}
+        .badges {{
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }}
+        .badge {{
+            display: inline-block;
+            padding: 3px 14px;
+            border-radius: 12px;
+            font-size: 0.6rem;
+            font-weight: 600;
+            color: white;
+        }}
+        .divider {{
+            border-top: 2px dashed #dce3ed;
+            margin: 5px 0 15px 0;
+        }}
+        .dato {{
+            display: flex;
+            padding: 6px 12px;
+            background: #f8fafc;
+            border-radius: 8px;
+            align-items: center;
+            border-left: 3px solid #2ecc71;
+            margin-bottom: 4px;
+        }}
+        .dato-extra {{
+            border-left-color: #8e44ad;
+        }}
+        .etiqueta {{
+            font-weight: 600;
+            color: #4a5568;
+            width: 160px;
+            flex-shrink: 0;
+            font-size: 0.78rem;
+        }}
+        .valor {{
+            color: #1a202c;
+            font-weight: 500;
+            font-size: 0.85rem;
+        }}
+        .pie {{
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px solid #eef2f7;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.6rem;
+            color: #a0aec0;
+        }}
+    </style>
+</head>
+<body>
+    <div class="tarjeta">
+        <div class="banda">
+            <span>👮 POLICÍA DE LA PROVINCIA</span>
+            <span style="font-size:0.6rem;opacity:0.7;">FICHA N° {dni.replace(".","")[:6]}</span>
+        </div>
+        <div class="header">
+            <div class="avatar">{iniciales}</div>
+            <div>
+                <div class="nombre">{nombre}</div>
+                <div class="badges">
+                    <span class="badge" style="background:#2c3e50;">DNI: {dni}</span>
+                    <span class="badge" style="background:#3498db;">{jerarquia}</span>
+                    <span class="badge" style="background:#e67e22;">{funcion}</span>
+                    <span class="badge" style="background:#8e44ad;">{dependencia}</span>
+                    <span class="badge" style="background:#e74c3c;">{sexo}</span>
+                </div>
+            </div>
+        </div>
+        <div class="divider"></div>
+        <div>
+"""
+
+        # Agregamos los datos
+        columnas_descarga = [
+            'MARCA DE ARMA', 'N° DE ARMA', 'OBS', 'SITUACION',
+            'GRUPO SANGUINEO', 'N° DE TELEFONO', 'DOMICILIO REAL (DONDE VIVE)',
+            'FECHA DE NACIMIENTO', 'EDAD', 'ANTIGUEDAD',
+            'DIAS DE LICENCIA DISPONIBLE', 'DIAS DE LICENCIA TOMADA',
+            'DIAS DE PROXIMA LICENCIA', 'LEGAJO PERSONAL', 'FECHA DE ULTIMO ASCENSO'
+        ]
+        
+        columnas_extra = [c for c in row.index if c not in columnas_descarga and c not in ['APELLIDO Y NOMBRE', 'DNI', 'JERARQUÍA', 'FUNCIÓN', 'DEPENDENCIA', 'SEXO', 'N°', 'N', 'Numero', 'Legajo']]
+
+        for col in columnas_descarga:
+            if col in row.index:
+                valor = row.get(col, '')
+                if valor and str(valor) != 'nan':
+                    html_descarga += f'''
+            <div class="dato">
+                <span class="etiqueta">📌 {col.replace('_', ' ').title()}:</span>
+                <span class="valor">{valor}</span>
+            </div>
+                    '''
+
+        for col in columnas_extra:
+            valor = row.get(col, '')
+            if valor and str(valor) != 'nan':
+                html_descarga += f'''
+            <div class="dato dato-extra">
+                <span class="etiqueta">📌 {col.replace('_', ' ').title()}:</span>
+                <span class="valor">{valor}</span>
+            </div>
+                '''
+
+        html_descarga += f"""
+        </div>
+        <div class="pie">
+            <span>📅 Emisión: {datetime.datetime.now().strftime('%d/%m/%Y')}</span>
+            <span>🔒 Documento oficial</span>
+        </div>
+    </div>
+</body>
+</html>
+"""
+
+        st.download_button(
+            label="🖼️ Descargar ficha como imagen (HTML)",
+            data=html_descarga,
+            file_name=f"ficha_{nombre.replace(' ', '_')}.html",
+            mime="text/html"
+        )
+        # =============================================
 
 
 # ========== CARGA INICIAL ==========
@@ -535,7 +726,7 @@ if st.session_state.logged_in:
                 
                 st.markdown("---")
         
-        # ===== TARJETAS (NUEVO DISEÑO) =====
+        # ===== TARJETAS =====
         st.markdown("""
         <div style="background: linear-gradient(135deg, #8e44ad 0%, #6c3483 100%); padding: 12px 20px; border-radius: 10px; margin: 20px 0 15px 0; color: white; font-weight: 600; font-size: 1.2rem;">
             👤 VER FICHA PERSONAL

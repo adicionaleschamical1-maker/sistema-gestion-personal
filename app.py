@@ -9,6 +9,7 @@ from collections import defaultdict
 import io
 import plotly.express as px
 import plotly.graph_objects as go
+import re
 
 try:
     from openpyxl import load_workbook
@@ -176,6 +177,14 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# ========== LIMPIEZA DE SEGURIDAD EN DATOS ==========
+def limpiar_html_seguro(df):
+    df_limpio = df.copy()
+    for col in df_limpio.columns:
+        df_limpio[col] = df_limpio[col].astype(str).str.replace(r'<[^>]+>', '', regex=True)
+        df_limpio[col] = df_limpio[col].str.strip()
+    return df_limpio
+
 # ========== FUNCIONES ==========
 @st.cache_data(ttl=60)
 def cargar_datos_hoja():
@@ -195,9 +204,7 @@ def cargar_datos_hoja():
             data = all_values[1:]
             header = [str(col).strip().upper() for col in header]
             df_personal = pd.DataFrame(data, columns=header)
-            for col in df_personal.columns:
-                df_personal[col] = df_personal[col].astype(str).str.strip()
-            df_personal.replace('', pd.NA, inplace=True)
+            df_personal = limpiar_html_seguro(df_personal)
             
             ws_usuarios = sh.worksheet("Usuarios")
             all_users = ws_usuarios.get_all_values()
@@ -208,9 +215,6 @@ def cargar_datos_hoja():
             header_users = [str(col).strip().upper() for col in header_users]
             data_users = all_users[1:]
             df_usuarios = pd.DataFrame(data_users, columns=header_users)
-            for col in df_usuarios.columns:
-                df_usuarios[col] = df_usuarios[col].astype(str).str.strip()
-            df_usuarios.replace('', pd.NA, inplace=True)
             
             try:
                 ws_propuestas = sh.worksheet("Propuestas")
@@ -424,7 +428,6 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
     </div>
     '''
     
-    # CORRECCIÓN FINAL: USAMOS st.markdown EN LUGAR DE st.write
     st.markdown(html, unsafe_allow_html=True)
 
 

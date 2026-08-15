@@ -25,7 +25,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# ========== CSS ==========
+# ========== CSS (Mínimo, solo para el avatar) ==========
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
@@ -106,72 +106,19 @@ st.markdown("""
         z-index: 999;
         font-size: 0.75rem;
     }
-    .tarjeta-carnet {
-        background: linear-gradient(145deg, #ffffff, #f5f7fa);
-        border-radius: 16px;
-        padding: 25px 30px;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.12);
-        border: 1px solid rgba(255,255,255,0.6);
-        margin: 20px 0;
-        max-width: 650px;
-        position: relative;
-    }
-    .tarjeta-carnet .banda-superior {
-        background: linear-gradient(90deg, #1f3a6b, #2c5a8c);
-        margin: -25px -30px 20px -30px;
-        padding: 12px 30px;
-        border-radius: 16px 16px 0 0;
-        color: white;
-        font-weight: 600;
-        font-size: 0.75rem;
-        letter-spacing: 2px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    .tarjeta-carnet .avatar {
-        background: linear-gradient(135deg, #1f3a6b, #2c5a8c);
-        width: 80px;
-        height: 80px;
-        border-radius: 50%;
+    .avatar-box {
         display: flex;
         align-items: center;
         justify-content: center;
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #1f3a6b, #2c5a8c);
+        color: white;
         font-size: 34px;
         font-weight: 700;
-        color: white;
-        box-shadow: 0 4px 15px rgba(31,58,107,0.3);
-        border: 3px solid white;
+        margin-right: 20px;
         flex-shrink: 0;
-    }
-    .tarjeta-carnet .badge {
-        display: inline-block;
-        padding: 3px 14px;
-        border-radius: 12px;
-        font-size: 0.6rem;
-        font-weight: 600;
-        color: white;
-    }
-    .tarjeta-carnet .dato {
-        display: flex;
-        padding: 6px 12px;
-        background: #f8fafc;
-        border-radius: 8px;
-        align-items: center;
-        border-left: 3px solid #2ecc71;
-        margin-bottom: 4px;
-    }
-    .tarjeta-carnet .dato-extra {
-        border-left-color: #8e44ad;
-    }
-    .tarjeta-carnet .pie {
-        margin-top: 15px;
-        padding-top: 10px;
-        border-top: 1px solid #eef2f7;
-        display: flex;
-        justify-content: space-between;
-        font-size: 0.6rem;
-        color: #a0aec0;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -338,7 +285,7 @@ def rechazar_propuesta(id_propuesta):
     except:
         return False
 
-# ========== TARJETA ÚNICA (SIN DUPLICADOS) ==========
+# ========== TARJETA NUEVA (STREAMLIT NATIVO) ==========
 def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
     nombre = row.get(nombre_col, 'Sin nombre')
     dni = row.get(dni_col, 'N/A') if dni_col else 'N/A'
@@ -350,29 +297,24 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
     palabras = nombre.split()
     iniciales = (palabras[0][0] + palabras[1][0]) if len(palabras) >= 2 else nombre[:2].upper()
     
-    html = f'''
-    <div class="tarjeta-carnet">
-        <div class="banda-superior">
-            <span>👮 POLICÍA DE LA PROVINCIA</span>
-            <span style="font-size:0.6rem;opacity:0.7;">FICHA N° {dni.replace(".","")[:6]}</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:20px;margin-bottom:20px;">
-            <div class="avatar">{iniciales}</div>
-            <div>
-                <div style="font-size:1.3rem;font-weight:700;color:#1f3a6b;">{nombre}</div>
-                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
-                    <span class="badge" style="background:#2c3e50;">DNI: {dni}</span>
-                    <span class="badge" style="background:#3498db;">{jerarquia}</span>
-                    <span class="badge" style="background:#e67e22;">{funcion}</span>
-                    <span class="badge" style="background:#8e44ad;">{dependencia}</span>
-                    {f'<span class="badge" style="background:#e74c3c;">{sexo}</span>' if sexo and sexo != 'N/A' else ''}
-                </div>
-            </div>
-        </div>
-        <div style="border-top:2px dashed #dce3ed;margin:5px 0 15px 0;"></div>
-        <div>
-    '''
+    # Usamos un contenedor st.info, que es nativo de Streamlit
+    with st.container():
+        st.info("📋 **FICHA PERSONAL**", icon="👮")
+        
+        col1, col2 = st.columns([1, 4])
+        with col1:
+            st.markdown(f"""
+            <div class="avatar-box">{iniciales}</div>
+            """, unsafe_allow_html=True)
+        with col2:
+            st.markdown(f"### {nombre}")
+            st.caption(f"📄 **DNI:** {dni}")
+            st.caption(f"⭐ **Jerarquía:** {jerarquia}")
+            st.caption(f"📋 **Función:** {funcion}")
+            st.caption(f"🏢 **Dependencia:** {dependencia}")
+            st.caption(f"⚧ **Sexo:** {sexo}")
     
+    # Mostramos el resto de los datos en columnas
     columnas = [
         'MARCA DE ARMA', 'N° DE ARMA', 'OBS', 'SITUACION',
         'GRUPO SANGUINEO', 'N° DE TELEFONO', 'DOMICILIO REAL (DONDE VIVE)',
@@ -385,46 +327,7 @@ def mostrar_tarjeta_efectivo(row, nombre_col, dni_col):
         if col in row.index:
             valor = row.get(col, '')
             if valor and str(valor) != 'nan':
-                etiqueta = col.replace('_', ' ').title()
-                icono = "📌"
-                if "TELEFONO" in col: icono = "📞"
-                elif "DOMICILIO" in col: icono = "📍"
-                elif "FECHA" in col and "NACIMIENTO" in col: icono = "🎂"
-                elif "EDAD" in col: icono = "📅"
-                elif "ARMA" in col: icono = "🔫"
-                elif "SANGUINEO" in col: icono = "🩸"
-                elif "LICENCIA" in col: icono = "📋"
-                elif "ANTIGUEDAD" in col: icono = "⏳"
-                
-                html += f'''
-                <div class="dato">
-                    <span style="font-weight:600;color:#4a5568;width:160px;flex-shrink:0;font-size:0.78rem;">{icono} {etiqueta}:</span>
-                    <span style="color:#1a202c;font-weight:500;font-size:0.85rem;">{valor}</span>
-                </div>
-                '''
-    
-    columnas_extra = [c for c in row.index if c not in columnas and c not in ['APELLIDO Y NOMBRE', 'DNI', 'JERARQUÍA', 'FUNCIÓN', 'DEPENDENCIA', 'SEXO', 'N°', 'N', 'Numero', 'Legajo']]
-    for col in columnas_extra:
-        valor = row.get(col, '')
-        if valor and str(valor) != 'nan':
-            etiqueta = col.replace('_', ' ').title()
-            html += f'''
-            <div class="dato dato-extra">
-                <span style="font-weight:600;color:#4a5568;width:160px;flex-shrink:0;font-size:0.78rem;">📌 {etiqueta}:</span>
-                <span style="color:#1a202c;font-weight:500;font-size:0.85rem;">{valor}</span>
-            </div>
-            '''
-    
-    html += '''
-        </div>
-        <div class="pie">
-            <span>📅 Emisión: ''' + datetime.datetime.now().strftime('%d/%m/%Y') + '''</span>
-            <span>🔒 Documento oficial</span>
-        </div>
-    </div>
-    '''
-    
-    st.markdown(html, unsafe_allow_html=True)
+                st.caption(f"**{col}:** {valor}")
 
 
 # ========== CARGA INICIAL ==========
@@ -594,7 +497,7 @@ if st.session_state.logged_in:
                 
                 st.markdown("---")
         
-        # ===== TARJETAS =====
+        # ===== TARJETAS (NUEVA VERSIÓN) =====
         st.markdown("""
         <div style="background: linear-gradient(135deg, #8e44ad 0%, #6c3483 100%); padding: 12px 20px; border-radius: 10px; margin: 20px 0 15px 0; color: white; font-weight: 600; font-size: 1.2rem;">
             👤 VER FICHA PERSONAL
